@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Shield, TrendingUp, Zap, Users, CheckCircle, Lock, Globe, Coins, Sun, Wifi, Car, FileText, Github, ExternalLink, Award, Target, Rocket, ChevronRight, Download, Play } from 'lucide-react';
+import { ArrowRight, Shield, TrendingUp, Zap, Users, CheckCircle, Lock, Globe, Coins, Sun, Wifi, Car, FileText, Github, ExternalLink, Award, Target, Rocket, ChevronRight, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import heroImage from '@/assets/hero-defi.jpg';
 
@@ -18,12 +18,6 @@ const Landing = () => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { duration: 0.5 } }
   };
-
-  const trustSignals = [
-    { icon: Award, text: 'Built on Sui Blockchain' },
-    { icon: Users, text: 'On-chain reputation, not collateral-only lending' },
-    { icon: FileText, text: 'Transparent Move smart contracts' }
-  ];
 
   const platformStats = [
     { label: 'On-chain Credit Profiles', status: 'Testnet Live', icon: Users },
@@ -96,8 +90,8 @@ const Landing = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-20 sm:pt-24 pb-8 sm:pb-16 px-4 sm:px-6 lg:px-8 overflow-hidden min-h-[80vh] flex items-center">
+      {/* Hero Section - Split Layout */}
+      <section className="relative pt-32 sm:pt-40 pb-20 sm:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
             src={heroImage}
@@ -105,77 +99,103 @@ const Landing = () => {
             className="w-full h-full object-cover opacity-100"
             onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/70"></div>
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 sm:w-72 sm:h-72 bg-accent/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-black/80"></div>
         </div>
         
         <motion.div 
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="container mx-auto text-center max-w-5xl relative z-10"
+          className="container mx-auto max-w-7xl relative z-10"
         >
-          {/* Sui Badge */}
-          <motion.div variants={itemVariants} className="mb-4 sm:mb-6">
-            <Badge className="bg-primary/20 text-primary border-primary/40 text-xs sm:text-sm px-3 sm:px-4 py-1 sm:py-1.5">
-              <Award className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              Built on Sui Blockchain
-            </Badge>
-          </motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left Side */}
+            <div className="text-left">
+              {/* Badge */}
+              <motion.div variants={itemVariants} className="mb-8">
+                <Badge className="bg-primary/20 text-primary border-primary/40 text-sm px-4 py-2">
+                  Built on Sui Blockchain
+                </Badge>
+              </motion.div>
 
-          <motion.h1 
-            variants={itemVariants}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-white mb-4 sm:mb-6 leading-tight tracking-tight"
-          >
-            <span className="mooncreditfi-glow">On-Chain Credit</span>
-            <br />
-            <span className="text-white">For Real-World Impact</span>
-          </motion.h1>
+              {/* Main Headline */}
+              <motion.h1 
+                variants={itemVariants}
+                className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-8 leading-tight tracking-tight"
+              >
+                On-Chain Credit
+              </motion.h1>
 
-          <motion.p 
-            variants={itemVariants}
-            className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 font-medium mb-6 sm:mb-8 max-w-3xl mx-auto px-4"
-          >
-            Reputation-based DeFi lending and decentralized infrastructure funding. 
-            Build credit. Fund the real world. All verified on-chain.
-          </motion.p>
+              {/* Subheadline */}
+              <motion.p 
+                variants={itemVariants}
+                className="text-xl sm:text-2xl text-white/90 font-light mb-12"
+              >
+                Build reputation. Access DeFi. Fund infrastructure.
+              </motion.p>
 
-          <motion.div 
-            variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 mb-8 sm:mb-12"
-          >
-            <Button 
-              size="lg" 
-              className="btn-mooncreditfi text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto" 
-              onClick={() => navigate('/dashboard')}
-            >
-              Launch App
-              <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto border-white/30 text-white hover:bg-white/10" 
-              onClick={() => navigate('/whitepaper')}
-            >
-              <FileText className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-              Read Whitepaper
-            </Button>
-          </motion.div>
+              {/* CTA Buttons */}
+              <motion.div 
+                variants={itemVariants}
+                className="flex flex-col sm:flex-row gap-4 mb-12"
+              >
+                <Button 
+                  size="lg" 
+                  className="btn-mooncreditfi text-lg px-8 h-14" 
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Launch App
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="text-lg px-8 h-14 border-white/30 text-white hover:bg-white/10" 
+                  onClick={() => navigate('/whitepaper')}
+                >
+                  Read Whitepaper
+                </Button>
+              </motion.div>
+            </div>
 
-          {/* Trust Signals */}
-          <motion.div 
-            variants={itemVariants}
-            className="flex flex-wrap justify-center gap-2 sm:gap-4 px-4"
-          >
-            {trustSignals.map((signal, i) => (
-              <div key={i} className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-                <signal.icon className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
-                <span className="text-[10px] sm:text-xs text-white font-medium">{signal.text}</span>
-              </div>
-            ))}
-          </motion.div>
+            {/* Right Side */}
+            <div className="flex items-center justify-center lg:justify-end">
+              <motion.div 
+                variants={itemVariants}
+                className="space-y-8 max-w-md"
+              >
+                <div className="flex items-start gap-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg mb-1">Sui Native</h3>
+                    <p className="text-white/70 text-sm">Built on Sui blockchain for speed and efficiency</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg mb-1">Open Source</h3>
+                    <p className="text-white/70 text-sm">Transparent Move contracts, fully auditable</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    <CheckCircle className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold text-lg mb-1">Testnet Live</h3>
+                    <p className="text-white/70 text-sm">Ready to test and build your credit now</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
         </motion.div>
       </section>
 
@@ -578,7 +598,7 @@ const Landing = () => {
               <h4 className="font-semibold text-sm mb-3">Resources</h4>
               <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
                 <li><a href="#/demo" className="hover:text-primary transition-colors flex items-center gap-1"><Play className="w-3 h-3" /> Product Demo</a></li>
-                <li><a href="#/whitepaper" className="hover:text-primary transition-colors flex items-center gap-1"><Download className="w-3 h-3" /> Whitepaper (PDF)</a></li>
+                <li><a href="#/whitepaper" className="hover:text-primary transition-colors flex items-center gap-1"><FileText className="w-3 h-3" /> Whitepaper</a></li>
                 <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center gap-1"><Github className="w-3 h-3" /> GitHub</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors flex items-center gap-1"><ExternalLink className="w-3 h-3" /> Smart Contracts</a></li>
               </ul>
