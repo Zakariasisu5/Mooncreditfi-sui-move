@@ -146,6 +146,7 @@ export const CreditProfileDataService = {
         objectId: profileObject.data.objectId,
         owner: fields.owner,
         score: parseInt(fields.score || 0),
+        debt: mistToSui(fields.debt || 0),  // Current outstanding debt
         totalBorrowed: mistToSui(fields.total_borrowed || 0),
         totalRepaid: mistToSui(fields.total_repaid || 0),
         loanCount: parseInt(fields.loan_count || 0),

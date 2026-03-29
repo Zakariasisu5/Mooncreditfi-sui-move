@@ -36,12 +36,23 @@ const BorrowProduction = () => {
   // Transaction execution
   const { executeTransaction, lastDigest, isPending, isConfirming } = useTransactionExecution();
 
-  // Active loan data from blockchain
-  const activeLoan = loanData?.hasActiveLoan ? {
-    amount: loanData.outstandingDebt,
-    interestRate: loanData.interestRate,
-    totalOwed: loanData.totalOwed,
-    estimatedInterest: loanData.estimatedInterest,
+  // Active loan data - prioritize profile.debt (on-chain source of truth)
+  const currentDebt = profile?.debt || 0;
+  const hasActiveLoan = currentDebt > 0.001; // Consider loans > 0.001 SUI as active
+  
+  // Calculate estimated interest (5% APR)
+  const interestRate = pool?.interestRate || 5.0;
+  let estimatedInterest = 0;
+  if (hasActiveLoan && loanData?.lastBorrowTimestamp) {
+    const daysSinceBorrow = (Date.now() - loanData.lastBorrowTimestamp) / (1000 * 60 * 60 * 24);
+    estimatedInterest = (currentDebt * interestRate / 100) * (daysSinceBorrow / 365);
+  }
+
+  const activeLoan = hasActiveLoan ? {
+    amount: currentDebt,
+    interestRate: interestRate,
+    totalOwed: currentDebt + estimatedInterest,
+    estimatedInterest: estimatedInterest,
   } : null;
 
   const handleCreateProfile = async () => {
@@ -433,10 +444,64 @@ const BorrowProduction = () => {
       </motion.div>
 
       {/* Loan History Card */}
-      {loanData && (loanData.borrowCount > 0 || loanData.repayCount > 0) && (
+      {profile && (profile.loanCount > 0 || profile.totalBorrowed > 0) && (
         <motion.div variants={itemVariants}>
           <Card className="card-glow">
             <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Loan Activity
+              </CardTitle>
+              <CardDescription>Your borrowing and repayment history</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="h-4 w-4 text-blue-500" />
+                    <p className="text-sm font-medium text-blue-500">Total Borrowed</p>
+                  </div>
+                  <p className="text-2xl font-bold">{profile.totalBorrowed.toFixed(4)} SUI</p>
+                  <p className="text-xs text-muted-foreground mt-1">{profile.loanCount} loans</p>
+                </div>
+                
+                <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <p className="text-sm font-medium text-green-500">Total Repaid</p>
+                  </div>
+                  <p className="text-2xl font-bold">{profile.totalRepaid.toFixed(4)} SUI</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {loanData?.repayCount || 0} payments
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="h-4 w-4 text-orange-500" />
+                    <p className="text-sm font-medium text-orange-500">Current Debt</p>
+                  </div>
+                  <p className="text-2xl font-bold">{currentDebt.toFixed(4)} SUI</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {hasActiveLoan ? 'Active loan' : 'Fully repaid'}
+                  </p>
+                </div>
+              </div>
+
+              {hasActiveLoan && (
+                <div className="mt-4 p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-500" />
+                    <p className="text-sm font-medium">
+                      Repay your loan on time to improve your credit score and unlock better rates
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Loan Activity

@@ -82,11 +82,19 @@ module mooncreditfi::lending_pool {
     }
 
     /// Record a repayment (now also adds to balance)
+    /// Safely handles debt reduction with underflow protection
     public(package) fun record_repayment(pool: &mut LendingPool, coin_balance: Balance<SUI>) {
         let amount = balance::value(&coin_balance);
         balance::join(&mut pool.balance, coin_balance);
         pool.total_liquidity = pool.total_liquidity + amount;
-        pool.total_borrowed = pool.total_borrowed - amount;
+        
+        // Safely reduce total_borrowed, preventing underflow
+        if (pool.total_borrowed >= amount) {
+            pool.total_borrowed = pool.total_borrowed - amount;
+        } else {
+            // If repayment exceeds borrowed (overpayment), set to 0
+            pool.total_borrowed = 0;
+        };
     }
 
     /// Update interest rate
