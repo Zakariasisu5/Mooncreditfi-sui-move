@@ -11,6 +11,7 @@ import {
   DePINDataService,
   BalanceService,
   UserDepositService,
+  UserLoanService,
 } from '@/services/dataService';
 
 /**
@@ -78,6 +79,25 @@ export const useUserDeposits = (options = {}) => {
   return useQuery({
     queryKey: ['userDeposits', userAddress],
     queryFn: () => UserDepositService.fetchUserDeposits(userAddress),
+    enabled: !!userAddress,
+    refetchInterval: 15000,
+    staleTime: 10000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch user's loan data from events
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with loan data
+ */
+export const useUserLoans = (options = {}) => {
+  const account = useCurrentAccount();
+  const userAddress = account?.address;
+
+  return useQuery({
+    queryKey: ['userLoans', userAddress],
+    queryFn: () => UserLoanService.fetchUserLoans(userAddress),
     enabled: !!userAddress,
     refetchInterval: 15000,
     staleTime: 10000,
@@ -173,6 +193,7 @@ export const useInvalidateQueries = () => {
       queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] });
       queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] });
       queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] });
+      queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] });
       queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] });
     },
     invalidateLendingPool: () => {
@@ -186,6 +207,9 @@ export const useInvalidateQueries = () => {
     },
     invalidateDeposits: () => {
       queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] });
+    },
+    invalidateLoans: () => {
+      queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] });
     },
     invalidateDePIN: () => {
       queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] });
@@ -223,6 +247,7 @@ export default {
   useCreditProfile,
   useUserBalance,
   useUserDeposits,
+  useUserLoans,
   useDePINProject,
   useDePINProjects,
   useUserDePINNFTs,

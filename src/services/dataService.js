@@ -510,6 +510,114 @@ export const UserDepositService = {
 };
 
 /**
+ * User Loan Service - Track user loans via events
+ */
+export const UserLoanService = {
+  /**
+   * Fetch user's borrow and repay events to calculate active loans
+   * @param {string} userAddress - User's Sui address
+   * @returns {Promise<Object>} User loan data
+   */
+  fetchUserLoans: async (userAddress) => {
+    try {
+      const suiClient = getSuiClient();
+      
+      // Query borrow events
+      const borrowEvents = await suiClient.queryEvents({
+        query: {
+          MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::BorrowEvent`,
+        },
+        limit: 1000,
+      });
+
+      // Query repay events
+      const repayEvents = await suiClient.queryEvents({
+        query: {
+          MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::RepayEvent`,
+        },
+        limit: 1000,
+      });
+
+      // Calculate user's loans
+      let totalBorrowed = 0;
+      let totalRepaid = 0;
+      let borrowCount = 0;
+      let repayCount = 0;
+      let lastBorrowTimestamp = null;
+      let lastRepayTimestamp = null;
+
+      // Sum borrows for this user
+      if (borrowEvents.data) {
+        borrowEvents.data.forEach(event => {
+          const parsedEvent = event.parsedJson;
+          if (parsedEvent && parsedEvent.borrower === userAddress) {
+            totalBorrowed += mistToSui(parsedEvent.amount);
+            borrowCount++;
+            if (!lastBorrowTimestamp || event.timestampMs > lastBorrowTimestamp) {
+              lastBorrowTimestamp = event.timestampMs;
+            }
+          }
+        });
+      }
+
+      // Sum repayments for this user
+      if (repayEvents.data) {
+        repayEvents.data.forEach(event => {
+          const parsedEvent = event.parsedJson;
+          if (parsedEvent && parsedEvent.borrower === userAddress) {
+            totalRepaid += mistToSui(parsedEvent.amount);
+            repayCount++;
+            if (!lastRepayTimestamp || event.timestampMs > lastRepayTimestamp) {
+              lastRepayTimestamp = event.timestampMs;
+            }
+          }
+        });
+      }
+
+      const outstandingDebt = totalBorrowed - totalRepaid;
+      const hasActiveLoan = outstandingDebt > 0.001; // Consider loans > 0.001 SUI as active
+
+      // Calculate estimated interest (5% APR for simplicity)
+      const interestRate = 5.0;
+      let estimatedInterest = 0;
+      if (hasActiveLoan && lastBorrowTimestamp) {
+        const daysSinceBorrow = (Date.now() - lastBorrowTimestamp) / (1000 * 60 * 60 * 24);
+        estimatedInterest = (outstandingDebt * interestRate / 100) * (daysSinceBorrow / 365);
+      }
+
+      return {
+        totalBorrowed,
+        totalRepaid,
+        outstandingDebt,
+        estimatedInterest,
+        totalOwed: outstandingDebt + estimatedInterest,
+        borrowCount,
+        repayCount,
+        hasActiveLoan,
+        lastBorrowTimestamp,
+        lastRepayTimestamp,
+        interestRate,
+      };
+    } catch (error) {
+      console.error('Error fetching user loans:', error);
+      return {
+        totalBorrowed: 0,
+        totalRepaid: 0,
+        outstandingDebt: 0,
+        estimatedInterest: 0,
+        totalOwed: 0,
+        borrowCount: 0,
+        repayCount: 0,
+        hasActiveLoan: false,
+        lastBorrowTimestamp: null,
+        lastRepayTimestamp: null,
+        interestRate: 5.0,
+      };
+    }
+  },
+};
+
+/**
  * Utility functions
  */
 export const DataUtils = {
@@ -557,6 +665,7 @@ export default {
   TransactionDataService,
   BalanceService,
   UserDepositService,
+  UserLoanService,
   DataUtils,
   getSuiClient,
 };
