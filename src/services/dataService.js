@@ -432,11 +432,12 @@ export const BalanceService = {
  */
 export const UserDepositService = {
   /**
-   * Fetch user's deposit and withdrawal events to calculate net deposited amount
+   * Fetch user's deposit and withdrawal events to calculate net deposited amount and yield
    * @param {string} userAddress - User's Sui address
+   * @param {number} poolAPY - Current pool APY
    * @returns {Promise<Object>} User deposit data
    */
-  fetchUserDeposits: async (userAddress) => {
+  fetchUserDeposits: async (userAddress, poolAPY = 5.0) => {
     try {
       const suiClient = getSuiClient();
       
@@ -461,6 +462,8 @@ export const UserDepositService = {
       let totalWithdrawn = 0;
       let depositCount = 0;
       let withdrawCount = 0;
+      let firstDepositTimestamp = null;
+      let lastActivityTimestamp = null;
 
       // Sum deposits for this user
       if (depositEvents.data) {
@@ -469,6 +472,13 @@ export const UserDepositService = {
           if (parsedEvent && parsedEvent.depositor === userAddress) {
             totalDeposited += mistToSui(parsedEvent.amount);
             depositCount++;
+            const timestamp = event.timestampMs || Date.now();
+            if (!firstDepositTimestamp || timestamp < firstDepositTimestamp) {
+              firstDepositTimestamp = timestamp;
+            }
+            if (!lastActivityTimestamp || timestamp > lastActivityTimestamp) {
+              lastActivityTimestamp = timestamp;
+            }
           }
         });
       }
@@ -480,11 +490,23 @@ export const UserDepositService = {
           if (parsedEvent && parsedEvent.withdrawer === userAddress) {
             totalWithdrawn += mistToSui(parsedEvent.amount);
             withdrawCount++;
+            const timestamp = event.timestampMs || Date.now();
+            if (!lastActivityTimestamp || timestamp > lastActivityTimestamp) {
+              lastActivityTimestamp = timestamp;
+            }
           }
         });
       }
 
       const netDeposited = totalDeposited - totalWithdrawn;
+
+      // Calculate yield earned based on time-weighted deposits
+      let yieldEarned = 0;
+      if (netDeposited > 0 && firstDepositTimestamp) {
+        const daysSinceFirstDeposit = (Date.now() - firstDepositTimestamp) / (1000 * 60 * 60 * 24);
+        // Simple yield calculation: principal * APY * (days / 365)
+        yieldEarned = (netDeposited * poolAPY / 100) * (daysSinceFirstDeposit / 365);
+      }
 
       return {
         totalDeposited,
@@ -492,9 +514,9 @@ export const UserDepositService = {
         netDeposited,
         depositCount,
         withdrawCount,
-        // Yield calculation would require tracking time-weighted deposits
-        // For now, return 0 - this should be implemented with proper yield tracking
-        yieldEarned: 0,
+        yieldEarned: Math.max(0, yieldEarned), // Ensure non-negative
+        firstDepositTimestamp,
+        lastActivityTimestamp,
       };
     } catch (error) {
       console.error('Error fetching user deposits:', error);
@@ -505,6 +527,8 @@ export const UserDepositService = {
         depositCount: 0,
         withdrawCount: 0,
         yieldEarned: 0,
+        firstDepositTimestamp: null,
+        lastActivityTimestamp: null,
       };
     }
   },

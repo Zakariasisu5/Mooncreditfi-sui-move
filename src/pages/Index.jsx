@@ -5,7 +5,7 @@ import { TrendingUp, DollarSign, Users, Wallet, CreditCard, TrendingDown } from 
 import { Link } from 'react-router-dom';
 import StatsCard from '@/components/StatsCard';
 import { useWalletContext } from '@/contexts/WalletContext';
-import { useLendingData, useMaxBorrowLimit } from '@/hooks/useContractData';
+import { useLendingData, useMaxBorrowLimit, useUserDeposits } from '@/hooks/useContractData';
 import { motion } from 'framer-motion';
 
 // Fallback price history for SUI trends
@@ -23,13 +23,14 @@ const Index = () => {
   const { isConnected, account } = useWalletContext();
   const { pool, profile, balance, isLoading } = useLendingData();
   const { creditScore, maxBorrowLimit } = useMaxBorrowLimit();
+  const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
 
   // Real on-chain data
-  const depositedBalance = profile?.totalBorrowed || 0;
-  const yieldEarned = 0; // TODO: Calculate from pool data
-  const activeLoanAmount = profile?.totalBorrowed || 0;
+  const depositedBalance = userDeposits?.netDeposited || 0;
+  const yieldEarned = userDeposits?.yieldEarned || 0;
+  const activeLoanAmount = profile?.debt || 0;
   const totalDeposited = pool?.totalDeposited || 0;
-  const currentAPY = pool?.interestRate / 100 || 5.0;
+  const currentAPY = pool?.interestRate || 5.0;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -54,31 +55,31 @@ const Index = () => {
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           <StatsCard
             title="Deposited Balance"
-            value={isConnected ? `${parseFloat(depositedBalance).toFixed(2)} SUI` : 'Not Connected'}
+            value={isConnected ? `${parseFloat(depositedBalance).toFixed(4)} SUI` : 'Not Connected'}
             description="Your lending position"
             icon={Wallet}
             className="card-glow"
           />
           <StatsCard
             title="Active Loan"
-            value={`${parseFloat(activeLoanAmount).toFixed(2)} SUI`}
+            value={isConnected ? `${parseFloat(activeLoanAmount).toFixed(4)} SUI` : 'Not Connected'}
             description="Current borrowed amount"
             icon={TrendingDown}
             className="card-glow"
           />
           <StatsCard
             title="Credit Score"
-            value={creditScore}
+            value={isConnected ? creditScore : 'Not Connected'}
             description="Your on-chain credit rating"
             icon={CreditCard}
             className="card-glow"
           />
           <StatsCard
             title="Yield Earned"
-            value={`${parseFloat(yieldEarned).toFixed(4)} SUI`}
+            value={isConnected ? `${parseFloat(yieldEarned).toFixed(6)} SUI` : 'Not Connected'}
             description="Total earnings from lending"
             icon={TrendingUp}
-            trend={parseFloat(yieldEarned) > 0 ? 8.5 : 0}
+            trend={parseFloat(yieldEarned) > 0 ? currentAPY : 0}
             className="card-glow"
           />
         </div>

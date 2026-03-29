@@ -129,7 +129,29 @@ const LendProduction = () => {
       return;
     }
 
-    toast.info('Claim yield functionality coming soon');
+    try {
+      // Claim yield by withdrawing the yield amount
+      const yieldAmount = parseFloat(yieldEarned);
+
+      // Create withdrawal transaction for yield amount
+      const tx = LendingPoolService.createWithdrawTransaction(yieldAmount);
+
+      // Execute transaction
+      await executeTransaction(tx, {
+        onSuccess: (digest) => {
+          toast.success(`Successfully claimed ${yieldAmount.toFixed(6)} SUI yield!`);
+          addNotification(`Claimed ${yieldAmount.toFixed(6)} SUI yield`, 'success');
+          setTimeout(() => invalidateAll(), 2000);
+        },
+        onError: (error) => {
+          const friendlyError = ErrorService.getUserFriendlyError(error);
+          toast.error(friendlyError.message);
+        },
+      });
+    } catch (error) {
+      const friendlyError = ErrorService.getUserFriendlyError(error);
+      toast.error(friendlyError.message);
+    }
   };
 
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };

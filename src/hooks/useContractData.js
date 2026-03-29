@@ -75,10 +75,14 @@ export const useUserBalance = (options = {}) => {
 export const useUserDeposits = (options = {}) => {
   const account = useCurrentAccount();
   const userAddress = account?.address;
+  
+  // Fetch pool data to get current APY
+  const { data: pool } = useLendingPool();
+  const poolAPY = pool?.interestRate || 5.0;
 
   return useQuery({
-    queryKey: ['userDeposits', userAddress],
-    queryFn: () => UserDepositService.fetchUserDeposits(userAddress),
+    queryKey: ['userDeposits', userAddress, poolAPY],
+    queryFn: () => UserDepositService.fetchUserDeposits(userAddress, poolAPY),
     enabled: !!userAddress,
     refetchInterval: 15000,
     staleTime: 10000,
