@@ -52,26 +52,26 @@ const Whitepaper = () => {
           <p className="text-xl sm:text-2xl text-muted-foreground mb-2">
             Decentralized Credit & DePIN Financing Protocol
           </p>
-          <p className="text-lg text-primary font-semibold">Built on Creditcoin</p>
+          <p className="text-lg text-primary font-semibold">Built on Sui</p>
           <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
             <span>Version 1.0</span>
             <span>•</span>
             <span>February 2026</span>
             <span>•</span>
-            <span>CEIP Application</span>
+            <span>Sui Testnet</span>
           </div>
         </motion.div>
 
         {/* Executive Summary */}
         <Section title="Executive Summary" icon={Shield}>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            MoonCreditFi is a next-generation decentralized finance (DeFi) protocol built on the Creditcoin blockchain, 
+            MoonCreditFi is a next-generation decentralized finance (DeFi) protocol built on the Sui blockchain, 
             designed to revolutionize credit-based lending and real-world infrastructure financing. Our platform combines 
             on-chain credit profiles, reputation-based lending pools, and Decentralized Physical Infrastructure Network 
             (DePIN) funding mechanisms to create a transparent, inclusive financial ecosystem.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-4">
-            By leveraging Creditcoin's credit-tracking infrastructure, MoonCreditFi enables users to build verifiable 
+            By leveraging Sui's high-performance infrastructure and Move smart contracts, MoonCreditFi enables users to build verifiable 
             credit histories on-chain, access under-collateralized loans based on reputation, and participate in funding 
             real-world infrastructure projects with transparent yield distribution.
           </p>
@@ -79,7 +79,7 @@ const Whitepaper = () => {
             <StatBox label="Credit Profiles" value="On-Chain" />
             <StatBox label="Lending Model" value="Reputation" />
             <StatBox label="DePIN Projects" value="Real Yield" />
-            <StatBox label="Network" value="Creditcoin" />
+            <StatBox label="Network" value="Sui" />
           </div>
         </Section>
 
@@ -156,11 +156,11 @@ const Whitepaper = () => {
               />
               <ArchBlock
                 title="Smart Contracts"
-                items={["CreditProfile (Move)", "LendingPool (Move)", "DePINFunding (Move)", "Upgradeable Modules"]}
+                items={["CreditProfile (Move)", "LendingPool (Move)", "DePIN (Move)", "Upgradeable Modules"]}
               />
               <ArchBlock
                 title="Infrastructure"
-                items={["Creditcoin Network", "IPFS Storage", "Supabase Backend", "CoinGecko Oracle"]}
+                items={["Sui Network", "IPFS Storage", "Supabase Backend", "CoinGecko Oracle"]}
               />
             </div>
             
@@ -186,22 +186,22 @@ const Whitepaper = () => {
         <Section title="Smart Contract Specifications" icon={Lock}>
           <div className="space-y-6">
             <ContractSpec
-              name="CreditProfile.sol"
-              address="0x32228b52A411528F521412B4cEb1F0D21e84bDed"
+              name="credit_profile.move"
+              address="0xb059616029897f6436640d7c254bcc6130f157c3677bda4eaaccf9f60014fe03"
               description="Manages wallet-based credit scores and loan history. Scores range from 300-850, with reputation updates triggered by loan repayments and DePIN funding activities."
-              functions={["getScore()", "updateScoreOnRepayment()", "recordLoan()", "getLoanHistory()"]}
+              functions={["get_score()", "update_score_on_repayment()", "record_loan()", "get_loan_history()"]}
             />
             <ContractSpec
-              name="LendingPool.sol"
-              address="0x6AFa3a9BDc76e7e2a88104cf24420e7Bc9F07728"
+              name="lending_pool.move"
+              address="0xdad7cc0f93773267022f8b94afab3743ba1f40214a049e8b64822c0dcbc80a1a"
               description="Core lending protocol enabling deposits, credit-based borrowing, and yield distribution. Interest rates are dynamically adjusted based on pool utilization and borrower credit scores."
-              functions={["deposit()", "borrow()", "repay()", "withdraw()", "getPoolStats()"]}
+              functions={["deposit()", "borrow()", "repay()", "withdraw()", "get_pool_stats()"]}
             />
             <ContractSpec
-              name="DePINFunding.sol"
-              address="0x9F69c698b20e7d7F16FD6a25F2f57E29c8b8bE2D"
+              name="depin.move"
+              address="0x3ac9433c7bbdce85254a5b0cad3be5f98fb656de63c4308b0f8c4b59a04fff53"
               description="Enables crowdfunding of real-world infrastructure projects. Tracks contributions, distributes yields proportionally, and mints proof-of-impact NFTs for participants."
-              functions={["fundProject()", "claimYield()", "getProjectDetails()", "mintImpactNFT()"]}
+              functions={["fund_project()", "claim_yield()", "get_project_details()", "mint_impact_nft()"]}
             />
           </div>
         </Section>
@@ -226,25 +226,25 @@ const Whitepaper = () => {
                 <tr className="border-b border-border/50">
                   <td className="py-3 px-4">750-850</td>
                   <td className="py-3 px-4 text-green-500">Excellent</td>
-                  <td className="py-3 px-4">100 CTC</td>
+                  <td className="py-3 px-4">100 SUI</td>
                   <td className="py-3 px-4">3-5%</td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-3 px-4">650-749</td>
                   <td className="py-3 px-4 text-blue-500">Good</td>
-                  <td className="py-3 px-4">50 CTC</td>
+                  <td className="py-3 px-4">50 SUI</td>
                   <td className="py-3 px-4">5-8%</td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-3 px-4">550-649</td>
                   <td className="py-3 px-4 text-yellow-500">Fair</td>
-                  <td className="py-3 px-4">25 CTC</td>
+                  <td className="py-3 px-4">25 SUI</td>
                   <td className="py-3 px-4">8-12%</td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4">300-549</td>
                   <td className="py-3 px-4 text-red-500">Building</td>
-                  <td className="py-3 px-4">10 CTC</td>
+                  <td className="py-3 px-4">10 SUI</td>
                   <td className="py-3 px-4">12-15%</td>
                 </tr>
               </tbody>
@@ -286,14 +286,14 @@ const Whitepaper = () => {
             <DePINProject
               name="Solar Grid Ghana"
               category="Renewable Energy"
-              target="50,000 CTC"
+              target="50,000 SUI"
               apy="8-12%"
               impact="500+ homes powered"
             />
             <DePINProject
               name="Edge Compute Lagos"
               category="Computing Infrastructure"
-              target="30,000 CTC"
+              target="30,000 SUI"
               apy="10-15%"
               impact="Reduced latency by 60%"
             />
@@ -329,7 +329,7 @@ const Whitepaper = () => {
                 "Credit Profile smart contract deployment",
                 "Basic lending pool implementation",
                 "Frontend MVP development",
-                "Creditcoin testnet integration"
+                "Sui testnet integration"
               ]}
             />
             <RoadmapPhase
@@ -359,7 +359,7 @@ const Whitepaper = () => {
               title="Mainnet & Growth"
               status="upcoming"
               items={[
-                "Creditcoin mainnet deployment",
+                "Sui mainnet deployment",
                 "Strategic partnerships",
                 "Multi-chain expansion",
                 "Institutional DePIN projects"
@@ -495,7 +495,7 @@ const Whitepaper = () => {
         <Section title="Conclusion" icon={Globe}>
           <p className="text-muted-foreground leading-relaxed mb-4">
             MoonCreditFi represents a paradigm shift in decentralized finance—moving beyond pure speculation 
-            toward building real economic value. By combining Creditcoin's credit-tracking infrastructure with 
+            toward building real economic value. By combining Sui's high-performance infrastructure with 
             innovative lending mechanisms and DePIN funding, we're creating a platform that serves the underserved 
             while generating sustainable returns for all participants.
           </p>
@@ -516,7 +516,7 @@ const Whitepaper = () => {
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-border text-center text-sm text-muted-foreground">
           <p>© 2026 MoonCreditFi. All rights reserved.</p>
-          <p className="mt-2">Built for Creditcoin Ecosystem Incentive Program (CEIP)</p>
+          <p className="mt-2">Built on Sui Blockchain</p>
           <p className="mt-2">
             Contact: <a href="mailto:zakariasisu5@gmail.com" className="text-primary hover:underline">zakariasisu5@gmail.com</a>
           </p>

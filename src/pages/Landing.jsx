@@ -157,10 +157,10 @@ const Landing = () => {
               size="lg" 
               variant="outline"
               className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto border-white/30 text-white hover:bg-white/10" 
-              onClick={() => navigate('/demo')}
+              onClick={() => navigate('/whitepaper')}
             >
-              <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-              Watch Demo
+              <FileText className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+              Read Whitepaper
             </Button>
           </motion.div>
 
