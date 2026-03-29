@@ -11,6 +11,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { routes } from "./nav-items";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
+import MobileWalletGuide from "./components/MobileWalletGuide";
 import Landing from "./pages/Landing";
 import About from "./pages/About";
 import Terms from "./pages/Terms";
@@ -28,10 +29,15 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork={ACTIVE_NETWORK}>
-        <SuiWalletProvider autoConnect>
+        <SuiWalletProvider 
+          autoConnect
+          preferredWallets={['Suiet', 'Sui Wallet', 'Ethos Wallet']}
+          enableUnsafeBurner={false}
+        >
           <NotificationProvider>
             <WalletProvider>
               <TooltipProvider>
+              <MobileWalletGuide />
               <Toaster />
               <HashRouter>
                 <Routes>
