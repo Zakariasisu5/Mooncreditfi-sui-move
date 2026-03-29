@@ -91,12 +91,12 @@ const Landing = () => {
       </nav>
 
       {/* Hero Section - Split Layout */}
-      <section className="relative pt-32 sm:pt-40 pb-20 sm:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <section className="relative pt-24 sm:pt-32 lg:pt-40 pb-16 sm:pb-20 lg:pb-32 px-4 sm:px-6 lg:px-8 overflow-hidden min-h-[90vh] sm:min-h-screen flex items-center">
         <div className="absolute inset-0 z-0">
           <img
             src={heroImage}
             alt="Hero background"
-            className="w-full h-full object-cover opacity-100"
+            className="w-full h-full object-cover object-center"
             onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-black/80"></div>
@@ -106,14 +106,14 @@ const Landing = () => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="container mx-auto max-w-7xl relative z-10"
+          className="container mx-auto max-w-7xl relative z-10 w-full"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
             {/* Left Side */}
-            <div className="text-left">
+            <div className="text-left space-y-6 sm:space-y-8">
               {/* Badge */}
-              <motion.div variants={itemVariants} className="mb-8">
-                <Badge className="bg-primary/20 text-primary border-primary/40 text-sm px-4 py-2">
+              <motion.div variants={itemVariants}>
+                <Badge className="bg-primary/20 text-primary border-primary/40 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2">
                   Built on Sui Blockchain
                 </Badge>
               </motion.div>
@@ -121,7 +121,7 @@ const Landing = () => {
               {/* Main Headline */}
               <motion.h1 
                 variants={itemVariants}
-                className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-8 leading-tight tracking-tight"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight tracking-tight"
               >
                 On-Chain Credit
               </motion.h1>
@@ -129,7 +129,7 @@ const Landing = () => {
               {/* Subheadline */}
               <motion.p 
                 variants={itemVariants}
-                className="text-xl sm:text-2xl text-white/90 font-light mb-12"
+                className="text-lg sm:text-xl lg:text-2xl text-white/90 font-light max-w-xl"
               >
                 Build reputation. Access DeFi. Fund infrastructure.
               </motion.p>
@@ -137,20 +137,20 @@ const Landing = () => {
               {/* CTA Buttons */}
               <motion.div 
                 variants={itemVariants}
-                className="flex flex-col sm:flex-row gap-4 mb-12"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2"
               >
                 <Button 
                   size="lg" 
-                  className="btn-mooncreditfi text-lg px-8 h-14" 
+                  className="btn-mooncreditfi text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto" 
                   onClick={() => navigate('/dashboard')}
                 >
                   Launch App
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
                 <Button 
                   size="lg" 
                   variant="outline"
-                  className="text-lg px-8 h-14 border-white/30 text-white hover:bg-white/10" 
+                  className="text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto border-white/30 text-white hover:bg-white/10" 
                   onClick={() => navigate('/whitepaper')}
                 >
                   Read Whitepaper
@@ -159,38 +159,38 @@ const Landing = () => {
             </div>
 
             {/* Right Side */}
-            <div className="flex items-center justify-center lg:justify-end">
+            <div className="flex items-center justify-center lg:justify-end mt-8 lg:mt-0">
               <motion.div 
                 variants={itemVariants}
-                className="space-y-8 max-w-md"
+                className="space-y-4 sm:space-y-6 lg:space-y-8 w-full max-w-md"
               >
-                <div className="flex items-start gap-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-primary" />
+                <div className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 lg:p-6 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-primary/20 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold text-lg mb-1">Sui Native</h3>
-                    <p className="text-white/70 text-sm">Built on Sui blockchain for speed and efficiency</p>
+                    <h3 className="text-white font-semibold text-base sm:text-lg mb-1">Sui Native</h3>
+                    <p className="text-white/70 text-xs sm:text-sm">Built on Sui blockchain for speed and efficiency</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-primary" />
+                <div className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 lg:p-6 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-primary/20 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold text-lg mb-1">Open Source</h3>
-                    <p className="text-white/70 text-sm">Transparent Move contracts, fully auditable</p>
+                    <h3 className="text-white font-semibold text-base sm:text-lg mb-1">Open Source</h3>
+                    <p className="text-white/70 text-xs sm:text-sm">Transparent Move contracts, fully auditable</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-primary" />
+                <div className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 lg:p-6 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+                  <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-primary/20 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold text-lg mb-1">Testnet Live</h3>
-                    <p className="text-white/70 text-sm">Ready to test and build your credit now</p>
+                    <h3 className="text-white font-semibold text-base sm:text-lg mb-1">Testnet Live</h3>
+                    <p className="text-white/70 text-xs sm:text-sm">Ready to test and build your credit now</p>
                   </div>
                 </div>
               </motion.div>
