@@ -232,6 +232,62 @@ export const DePINDataService = {
   },
 
   /**
+   * Fetch multiple DePIN projects
+   * @param {Array} projectIds - Array of project object IDs with metadata
+   * @returns {Promise<Array>} Array of project data
+   */
+  fetchMultipleProjects: async (projectIds) => {
+    try {
+      const suiClient = getSuiClient();
+      
+      // Fetch all projects in parallel
+      const projectPromises = projectIds.map(async (projectInfo) => {
+        try {
+          const projectObject = await suiClient.getObject({
+            id: projectInfo.id,
+            options: {
+              showContent: true,
+              showType: true,
+            },
+          });
+
+          if (!projectObject.data) {
+            return null;
+          }
+
+          const fields = projectObject.data.content?.fields;
+          if (!fields) {
+            return null;
+          }
+
+          return {
+            objectId: projectObject.data.objectId,
+            name: fields.name || projectInfo.name,
+            description: fields.description,
+            category: projectInfo.category,
+            targetAmount: mistToSui(fields.target_amount || 0),
+            currentAmount: mistToSui(fields.current_amount || 0),
+            apy: parseFloat(fields.apy || 0) / 100,
+            isActive: fields.is_active || false,
+            fundingProgress: fields.target_amount > 0
+              ? (parseFloat(fields.current_amount) / parseFloat(fields.target_amount)) * 100
+              : 0,
+          };
+        } catch (error) {
+          console.error(`Error fetching project ${projectInfo.id}:`, error);
+          return null;
+        }
+      });
+
+      const projects = await Promise.all(projectPromises);
+      return projects.filter(p => p !== null);
+    } catch (error) {
+      console.error('Error fetching multiple projects:', error);
+      return [];
+    }
+  },
+
+  /**
    * Fetch user's DePIN NFTs
    * @param {string} userAddress - User's Sui address
    * @returns {Promise<Array>} Array of NFT data

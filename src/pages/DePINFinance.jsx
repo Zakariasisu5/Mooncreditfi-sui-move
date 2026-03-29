@@ -13,8 +13,8 @@ import { useWalletContext } from '@/contexts/WalletContext';
 import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { Zap, Sun, Wifi, Car, DollarSign, TrendingUp, Users, Loader2, Shield, Award, ExternalLink, Search, Filter, X } from 'lucide-react';
-import { EXPLORER_URL, DEPIN_FINANCE_OBJECT_ID } from '@/config/sui';
-import { useDePINProject, useUserDePINNFTs } from '@/hooks/useContractData';
+import { EXPLORER_URL, DEPIN_PROJECTS } from '@/config/sui';
+import { useDePINProjects, useUserDePINNFTs } from '@/hooks/useContractData';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { DePINService } from '@/services/contractService';
 
@@ -29,8 +29,8 @@ const DePINFinance = () => {
   const { isConnected, account: address } = useWalletContext();
   const { addNotification } = useNotifications();
 
-  // Fetch real on-chain data
-  const { data: depinProject, isLoading: isLoadingProject } = useDePINProject(DEPIN_FINANCE_OBJECT_ID);
+  // Fetch real on-chain data for all projects
+  const { data: depinProjects, isLoading: isLoadingProjects } = useDePINProjects(DEPIN_PROJECTS);
   const { data: userNFTs, isLoading: isLoadingNFTs } = useUserDePINNFTs();
   const { executeTransaction, isPending, isConfirming } = useTransactionExecution();
 
@@ -40,19 +40,19 @@ const DePINFinance = () => {
   const totalUserInvestment = userNFTs?.reduce((sum, nft) => sum + nft.amount, 0) || 0;
   const userNFTCount = userNFTs?.length || 0;
 
-  // Convert on-chain project to display format
-  const projects = depinProject ? [{
-    id: DEPIN_FINANCE_OBJECT_ID,
-    name: depinProject.name || 'Solar Farm',
-    category: 'Solar',
-    description: depinProject.description || 'Decentralized solar energy infrastructure project',
-    funding_goal: depinProject.targetAmount || 100000,
-    funding_current: depinProject.currentAmount || 0,
-    funding_progress: depinProject.fundingProgress || 0,
-    roi: (depinProject.apy || 0),
-    status: depinProject.isActive ? 'active' : 'inactive',
+  // Convert on-chain projects to display format
+  const projects = depinProjects ? depinProjects.map(project => ({
+    id: project.objectId,
+    name: project.name,
+    category: project.category,
+    description: project.description,
+    funding_goal: project.targetAmount,
+    funding_current: project.currentAmount,
+    funding_progress: project.fundingProgress,
+    roi: project.apy,
+    status: project.isActive ? 'active' : 'inactive',
     image: '/placeholder.svg'
-  }] : [];
+  })) : [];
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
@@ -118,7 +118,7 @@ const DePINFinance = () => {
   const clearFilters = () => { setSearchQuery(''); setCategoryFilter('all'); setMinROI(0); setMinProgress(0); };
   const hasActiveFilters = searchQuery || categoryFilter !== 'all' || minROI > 0 || minProgress > 0;
 
-  const loading = isLoadingProject || isLoadingNFTs;
+  const loading = isLoadingProjects || isLoadingNFTs;
 
   return (
     <div className="space-y-6">

@@ -14,7 +14,19 @@ export const SUI_PACKAGE_ID = '0xb059616029897f6436640d7c254bcc6130f157c3677bda4
 // Real object IDs from Sui Testnet
 export const LENDING_POOL_OBJECT_ID = '0xdad7cc0f93773267022f8b94afab3743ba1f40214a049e8b64822c0dcbc80a1a';
 export const CREDIT_PROFILE_OBJECT_ID = '0x7332d82055668698dfb76c0f25a4da244a99d1e31af30ed0e8e2d9c3cb493ba2'; 
-export const DEPIN_FINANCE_OBJECT_ID = '0x3ac9433c7bbdce85254a5b0cad3be5f98fb656de63c4308b0f8c4b59a04fff53'; 
+
+// DePIN Projects - Multiple infrastructure projects
+export const DEPIN_PROJECTS = [
+  { id: '0x3ac9433c7bbdce85254a5b0cad3be5f98fb656de63c4308b0f8c4b59a04fff53', category: 'Solar', name: 'Solar Farm' },
+  { id: '0x48d62dd05a8b9e3e4413ec042453495e50919953a1647ea3c36220d1757532c3', category: 'Telecom', name: '5G Network Infrastructure' },
+  { id: '0x76c0a8f1ea50041aa68878f4dfd50ce5a2d9df65d74921eeec6e2a2a09a8bce9', category: 'IoT', name: 'IoT Sensor Network' },
+  { id: '0xad4eee33f6458b24a7a4d1591ed6daa7e21daf00605da50d98ace06795ed8275', category: 'Mobility', name: 'EV Charging Stations' },
+  { id: '0x1e76bfe6041bdbc1209cc781d25c97da5f39adb262e35c8cd1d9638e7c6b9c5c', category: 'WiFi', name: 'Community WiFi Hotspots' },
+  { id: '0xa9e5fd5e019daa77d2ee8c59bea85098f806d35f2943887f037b0678a7d048ed', category: 'Energy Storage', name: 'Battery Storage Grid' },
+];
+
+// Legacy single project ID (kept for backward compatibility)
+export const DEPIN_FINANCE_OBJECT_ID = DEPIN_PROJECTS[0].id; 
 
 // Set to false once you have real object IDs
 export const USE_DEMO_MODE = false;

@@ -103,6 +103,23 @@ export const useDePINProject = (projectObjectId, options = {}) => {
 };
 
 /**
+ * Hook to fetch multiple DePIN projects
+ * @param {Array} projectIds - Array of project object IDs
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with projects data
+ */
+export const useDePINProjects = (projectIds = [], options = {}) => {
+  return useQuery({
+    queryKey: ['depinProjects', projectIds],
+    queryFn: () => DePINDataService.fetchMultipleProjects(projectIds),
+    enabled: projectIds.length > 0,
+    refetchInterval: 20000,
+    staleTime: 15000,
+    ...options,
+  });
+};
+
+/**
  * Hook to fetch user's DePIN NFTs
  * @param {Object} options - Query options
  * @returns {Object} Query result with NFT data
@@ -207,6 +224,7 @@ export default {
   useUserBalance,
   useUserDeposits,
   useDePINProject,
+  useDePINProjects,
   useUserDePINNFTs,
   useMaxBorrowLimit,
   useInvalidateQueries,
