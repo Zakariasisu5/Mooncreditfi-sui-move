@@ -1,8 +1,8 @@
 # MoonCreditFi Object Initialization Script (PowerShell)
 $ErrorActionPreference = "Stop"
 
-$PACKAGE_ID = "0xe5562b70f5e2618a78a4e2ce8494af09098518461ba50f1004071209277f5bce"
-$DEPLOYER_ADDRESS = "0x0efea5713bf6a94382d3b7acc0c1a1438a54a41439b5db5c0c66a63b5f3d0fe0"
+$PACKAGE_ID = "0x8853e2763099cbbd1fd5281a9823d8d76d8423a89fb8068d7c21bd4f06118088"
+$DEPLOYER_ADDRESS = "0x1b5f1da225b2ead0d8ed23c70bcbe78f872756953870a3429c7f347a239c1160"
 
 Write-Host "MoonCreditFi Object Initialization"
 Write-Host "======================================"
@@ -38,7 +38,7 @@ Write-Host "Interest Rate: 5 percent (500 basis points)"
 Write-Host ""
 
 try {
-    $poolOutput = sui client call --package $PACKAGE_ID --module lending_pool --function new --args 500 --gas-budget 10000000 --json 2>&1 | ConvertFrom-Json
+    $poolOutput = sui client call --package $PACKAGE_ID --module lending_pool --function create_pool --args 500 --gas-budget 10000000 --json 2>&1 | ConvertFrom-Json
     
     $poolId = ($poolOutput.objectChanges | Where-Object { $_.type -eq "created" } | Select-Object -First 1).objectId
     
@@ -57,7 +57,7 @@ Write-Host "Owner: $DEPLOYER_ADDRESS"
 Write-Host ""
 
 try {
-    $profileOutput = sui client call --package $PACKAGE_ID --module credit_profile --function new --args $DEPLOYER_ADDRESS --gas-budget 10000000 --json 2>&1 | ConvertFrom-Json
+    $profileOutput = sui client call --package $PACKAGE_ID --module credit_profile --function create_profile --gas-budget 10000000 --json 2>&1 | ConvertFrom-Json
     
     $profileId = ($profileOutput.objectChanges | Where-Object { $_.type -eq "created" } | Select-Object -First 1).objectId
     

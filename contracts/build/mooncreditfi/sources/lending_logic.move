@@ -155,8 +155,9 @@ module mooncreditfi::lending_logic {
             assert!(current_borrowed >= current_debt, EUnderflowPrevention);
             
             // Convert coin to balance and add to pool
+            // Pass current_debt as the amount to reduce from total_borrowed
             let payment_balance = coin::into_balance(payment);
-            lending_pool::record_repayment(pool, payment_balance);
+            lending_pool::record_repayment(pool, payment_balance, current_debt);
             
             // Note: If amount > current_debt, the extra goes to the pool as a bonus
             // This incentivizes overpayment and benefits liquidity providers
@@ -174,8 +175,9 @@ module mooncreditfi::lending_logic {
             assert!(current_borrowed >= amount, EUnderflowPrevention);
             
             // Convert coin to balance and add to pool
+            // For partial repayment, debt reduction equals payment amount
             let payment_balance = coin::into_balance(payment);
-            lending_pool::record_repayment(pool, payment_balance);
+            lending_pool::record_repayment(pool, payment_balance, amount);
         };
 
         // Get updated credit score for event

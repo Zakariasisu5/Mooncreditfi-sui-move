@@ -8,16 +8,16 @@ const { networkConfig } = createNetworkConfig({
 
 export { networkConfig };
 
-// Deployed package IDs on Sui Testnet - Updated with Balance-based pool
-export const SUI_PACKAGE_ID = '0xb059616029897f6436640d7c254bcc6130f157c3677bda4eaaccf9f60014fe03';
+// Deployed package IDs on Sui Testnet - Updated with debt tracking system
+export const SUI_PACKAGE_ID = '0x8853e2763099cbbd1fd5281a9823d8d76d8423a89fb8068d7c21bd4f06118088';
 
 // Real object IDs from Sui Testnet
-export const LENDING_POOL_OBJECT_ID = '0xdad7cc0f93773267022f8b94afab3743ba1f40214a049e8b64822c0dcbc80a1a';
-export const CREDIT_PROFILE_OBJECT_ID = '0x7332d82055668698dfb76c0f25a4da244a99d1e31af30ed0e8e2d9c3cb493ba2'; 
+export const LENDING_POOL_OBJECT_ID = '0x082dab87c4c23ed818c67bafd0cd4c2b38e8b4b8668387653dbc2ee0474b1b71';
+export const CREDIT_PROFILE_OBJECT_ID = '0xd8fc84c31c80f58b6ab4fc3aa153cddc232bbb745187be56da1c33ea3ee94c2a'; 
 
 // DePIN Projects - Multiple infrastructure projects
 export const DEPIN_PROJECTS = [
-  { id: '0x3ac9433c7bbdce85254a5b0cad3be5f98fb656de63c4308b0f8c4b59a04fff53', category: 'Solar', name: 'Solar Farm' },
+  { id: '0x5fb777107c23414cb548fcddb06b1c5704ef5418ad382d7bc871f279210cef6c', category: 'Solar', name: 'Solar Farm' },
   { id: '0x48d62dd05a8b9e3e4413ec042453495e50919953a1647ea3c36220d1757532c3', category: 'Telecom', name: '5G Network Infrastructure' },
   { id: '0x76c0a8f1ea50041aa68878f4dfd50ce5a2d9df65d74921eeec6e2a2a09a8bce9', category: 'IoT', name: 'IoT Sensor Network' },
   { id: '0xad4eee33f6458b24a7a4d1591ed6daa7e21daf00605da50d98ace06795ed8275', category: 'Mobility', name: 'EV Charging Stations' },
