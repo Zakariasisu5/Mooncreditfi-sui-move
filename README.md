@@ -417,12 +417,6 @@ For detailed documentation, see:
 
 ---
 
-## 🎥 Demo
-
-👉 [https://youtu.be/i4bsy6vPeXo?si=sisfj6FPo8T1B-JX](https://youtu.be/i4bsy6vPeXo?si=sisfj6FPo8T1B-JX)
-
----
-
 ## 📬 Contact
 
 **Zakaria Sisu**
