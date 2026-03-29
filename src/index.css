@@ -162,6 +162,52 @@
     animation: scroll-right 30s linear infinite;
   }
 
+  /* Sui Wallet Kit Mobile Optimizations */
+  @media (max-width: 640px) {
+    /* Make wallet modal full screen on mobile */
+    [role="dialog"] {
+      position: fixed !important;
+      inset: 0 !important;
+      display: flex !important;
+      align-items: flex-end !important;
+      justify-content: center !important;
+    }
+    
+    [role="dialog"] > div:first-child {
+      background: rgba(0, 0, 0, 0.8) !important;
+      position: fixed !important;
+      inset: 0 !important;
+    }
+    
+    [role="dialog"] > div > div {
+      max-width: 100vw !important;
+      width: 100% !important;
+      margin: 0 !important;
+      border-radius: 1rem 1rem 0 0 !important;
+      max-height: 85vh !important;
+      overflow-y: auto !important;
+    }
+    
+    /* Ensure wallet buttons are touch-friendly */
+    button[data-testid*="wallet"] {
+      min-height: 56px !important;
+      padding: 1rem !important;
+      font-size: 1rem !important;
+    }
+  }
+
+  /* Sui dApp Kit styles */
+  .dapp-kit-button {
+    min-height: 44px !important;
+    padding: 0.5rem 1rem !important;
+  }
+  
+  @media (max-width: 640px) {
+    .dapp-kit-button {
+      font-size: 0.875rem !important;
+    }
+  }
+
   /* RainbowKit Custom Theme */
   .iekbcc0 {
     background: hsl(var(--card)) !important;
