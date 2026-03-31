@@ -188,15 +188,15 @@ export const DePINService = {
     const tx = new Transaction();
     const amountInMist = suiToMist(amountInSui);
     
-    // Split coins for funding
-    const [coin] = tx.splitCoins(tx.gas, [amountInMist]);
+    // Split coins for funding - use tx.gas as the source
+    const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(amountInMist)]);
     
-    // Use sharedObjectRef for shared objects (DePIN projects are shared)
+    // Call fund_project with the project object and coin
     tx.moveCall({
       target: `${SUI_PACKAGE_ID}::depin::fund_project`,
       arguments: [
-        tx.object(projectObjectId), // Shared object reference
-        coin,
+        tx.object(projectObjectId), // Shared DePIN project object
+        coin,                        // Coin<SUI> payment
       ],
     });
     
