@@ -102,8 +102,8 @@ const CreditProfileProduction = () => {
   const isProcessing = isPending || isConfirming;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold mooncreditfi-glow">Credit Profile</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-2xl sm:text-3xl font-bold mooncreditfi-glow">Credit Profile</h1>
 
       {/* Error Alert */}
       {profileError && (
@@ -119,9 +119,9 @@ const CreditProfileProduction = () => {
       {isConnected && !hasProfile && !isLoadingProfile && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>You don't have a credit profile yet. Create one to start building your credit.</span>
-            <Button onClick={handleCreateProfile} disabled={isProcessing} size="sm">
+          <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <span className="text-sm">You don't have a credit profile yet. Create one to start building your credit.</span>
+            <Button onClick={handleCreateProfile} disabled={isProcessing} size="sm" className="w-full sm:w-auto">
               {isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Create Profile
             </Button>
@@ -130,7 +130,7 @@ const CreditProfileProduction = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {isLoadingProfile ? (
           <>
             {[1, 2, 3, 4].map((i) => (
@@ -172,12 +172,12 @@ const CreditProfileProduction = () => {
             />
           </>
         ) : (
-          <div className="col-span-4">
+          <div className="col-span-full">
             <Card className="card-glow">
-              <CardContent className="p-12 text-center">
-                <CreditCard className="h-16 w-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
-                <h3 className="text-xl font-semibold mb-2">No Credit Profile</h3>
-                <p className="text-muted-foreground mb-4">Create a profile to start building your on-chain credit</p>
+              <CardContent className="p-6 sm:p-12 text-center">
+                <CreditCard className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                <h3 className="text-lg sm:text-xl font-semibold mb-2">No Credit Profile</h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4">Create a profile to start building your on-chain credit</p>
                 <Button onClick={handleCreateProfile} disabled={isProcessing}>
                   {isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Create Profile
@@ -193,26 +193,26 @@ const CreditProfileProduction = () => {
 
       {hasProfile && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Credit Utilization */}
             <Card className="card-glow">
-              <CardHeader>
-                <CardTitle>Credit Utilization</CardTitle>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg">Credit Utilization</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0 sm:pt-0">
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span>Used: {(profile?.totalBorrowed || 0).toFixed(4)} SUI</span>
                     <span>Available: {maxBorrowLimit.toFixed(4)} SUI</span>
                   </div>
-                  <Progress value={utilizationRate} className="h-3" />
-                  <div className="text-center text-sm text-muted-foreground">
+                  <Progress value={utilizationRate} className="h-2 sm:h-3" />
+                  <div className="text-center text-xs sm:text-sm text-muted-foreground">
                     {utilizationRate.toFixed(1)}% utilized
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <h4 className="font-semibold">Credit Health Tips</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
+                  <h4 className="font-semibold text-sm sm:text-base">Credit Health Tips</h4>
+                  <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
                     <li>• Keep utilization below 30% for optimal score</li>
                     <li>• Pay loans on time to improve rating</li>
                     <li>• Borrow and repay consistently to build history</li>
@@ -224,39 +224,39 @@ const CreditProfileProduction = () => {
 
             {/* Score Breakdown */}
             <Card className="card-glow">
-              <CardHeader>
-                <CardTitle>Score Breakdown</CardTitle>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-base sm:text-lg">Score Breakdown</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+              <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+                <div className="flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Your Score</p>
-                    <p className="text-4xl font-bold text-primary">{creditScore}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Your Score</p>
+                    <p className="text-3xl sm:text-4xl font-bold text-primary">{creditScore}</p>
                   </div>
                   <div className="text-right">
-                    <Badge variant={creditRating.variant}>{creditRating.label}</Badge>
-                    <p className="text-xs text-muted-foreground mt-2">
+                    <Badge variant={creditRating.variant} className="text-xs sm:text-sm">{creditRating.label}</Badge>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
                       Based on {profile?.loanCount || 0} loans
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Loan Count</p>
-                    <p className="font-bold text-lg">{profile?.loanCount || 0}</p>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Count</p>
+                    <p className="font-bold text-base sm:text-lg">{profile?.loanCount || 0}</p>
                   </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Defaults</p>
-                    <p className="font-bold text-lg text-red-500">{profile?.defaultCount || 0}</p>
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Defaults</p>
+                    <p className="font-bold text-base sm:text-lg text-red-500">{profile?.defaultCount || 0}</p>
                   </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Total Borrowed</p>
-                    <p className="font-bold">{(profile?.totalBorrowed || 0).toFixed(4)} SUI</p>
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Total Borrowed</p>
+                    <p className="font-bold text-xs sm:text-sm">{(profile?.totalBorrowed || 0).toFixed(4)} SUI</p>
                   </div>
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Total Repaid</p>
-                    <p className="font-bold text-green-500">{(profile?.totalRepaid || 0).toFixed(4)} SUI</p>
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Total Repaid</p>
+                    <p className="font-bold text-xs sm:text-sm text-green-500">{(profile?.totalRepaid || 0).toFixed(4)} SUI</p>
                   </div>
                 </div>
               </CardContent>
@@ -265,12 +265,12 @@ const CreditProfileProduction = () => {
 
           {/* Credit Score Scale */}
           <Card className="card-glow">
-            <CardHeader>
-              <CardTitle>Credit Score Scale</CardTitle>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Credit Score Scale</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {[
                     { range: '750-850', label: 'Excellent', color: 'bg-green-500', maxBorrow: '100 SUI', rate: '3-5%' },
                     { range: '650-749', label: 'Good', color: 'bg-blue-500', maxBorrow: '50 SUI', rate: '5-8%' },
@@ -279,21 +279,21 @@ const CreditProfileProduction = () => {
                   ].map((tier, i) => (
                     <div
                       key={i}
-                      className={`p-4 rounded-lg border-2 ${
+                      className={`p-3 sm:p-4 rounded-lg border-2 ${
                         creditScore >= parseInt(tier.range.split('-')[0]) &&
                         creditScore <= parseInt(tier.range.split('-')[1])
                           ? 'border-primary bg-primary/10'
                           : 'border-border'
                       }`}
                     >
-                      <div className={`w-3 h-3 rounded-full ${tier.color} mb-2`}></div>
-                      <h4 className="font-semibold">{tier.label}</h4>
-                      <p className="text-sm text-muted-foreground">{tier.range}</p>
+                      <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${tier.color} mb-2`}></div>
+                      <h4 className="font-semibold text-sm sm:text-base">{tier.label}</h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground">{tier.range}</p>
                       <div className="mt-2 pt-2 border-t border-border">
-                        <p className="text-xs text-muted-foreground">Max Borrow</p>
-                        <p className="text-sm font-medium">{tier.maxBorrow}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Interest</p>
-                        <p className="text-sm font-medium">{tier.rate}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">Max Borrow</p>
+                        <p className="text-xs sm:text-sm font-medium">{tier.maxBorrow}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Interest</p>
+                        <p className="text-xs sm:text-sm font-medium">{tier.rate}</p>
                       </div>
                     </div>
                   ))}

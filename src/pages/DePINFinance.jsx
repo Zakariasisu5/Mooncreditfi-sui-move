@@ -121,10 +121,10 @@ const DePINFinance = () => {
   const loading = isLoadingProjects || isLoadingNFTs;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold mooncreditfi-glow">DePIN Finance</h1>
-        <Badge variant="outline" className="text-sm">Decentralized Physical Infrastructure</Badge>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h1 className="text-2xl sm:text-3xl font-bold mooncreditfi-glow">DePIN Finance</h1>
+        <Badge variant="outline" className="text-xs sm:text-sm w-fit">Decentralized Physical Infrastructure</Badge>
       </div>
 
       {loading ? (
@@ -132,7 +132,7 @@ const DePINFinance = () => {
       ) : (
         <>
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             <StatsCard title="TVL" value={`${totalFinanced.toFixed(4)} SUI`} description="Total value locked" icon={DollarSign} trend={15.2} />
             <StatsCard title="Active Projects" value={projects.length.toString()} description="Live infrastructure projects" icon={TrendingUp} trend={8.7} />
             <StatsCard title="Your Investment" value={`${totalUserInvestment.toFixed(4)} SUI`} description={`${userNFTCount} NFT${userNFTCount !== 1 ? 's' : ''} owned`} icon={Award} />
@@ -142,21 +142,21 @@ const DePINFinance = () => {
           {/* User NFTs */}
           {isConnected && userNFTs && userNFTs.length > 0 && (
             <Card className="card-glow border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" />Your DePIN NFTs</CardTitle>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><Shield className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />Your DePIN NFTs</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {userNFTs.map((nft, index) => (
-                    <div key={nft.objectId} className="p-4 bg-muted/50 rounded-lg border border-border">
+                    <div key={nft.objectId} className="p-3 sm:p-4 bg-muted/50 rounded-lg border border-border">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <Badge variant="secondary" className="mb-2">NFT #{index + 1}</Badge>
-                          <p className="text-sm text-muted-foreground">Investment Amount</p>
-                          <p className="text-xl font-bold">{nft.amount.toFixed(4)} SUI</p>
+                          <Badge variant="secondary" className="mb-2 text-xs">NFT #{index + 1}</Badge>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Investment Amount</p>
+                          <p className="text-lg sm:text-xl font-bold">{nft.amount.toFixed(4)} SUI</p>
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
                         <p>Project: {nft.projectId.slice(0, 8)}...{nft.projectId.slice(-6)}</p>
                       </div>
                     </div>
@@ -204,34 +204,34 @@ const DePINFinance = () => {
 
           {/* Available Projects */}
           <div>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <h2 className="text-2xl font-bold">Available Projects</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold">Available Projects</h2>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{filteredProjects.length} of {projects.length} projects</span>
-                {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4 mr-1" />Clear</Button>}
+                <span className="text-xs sm:text-sm text-muted-foreground">{filteredProjects.length} of {projects.length} projects</span>
+                {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground text-xs sm:text-sm"><X className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />Clear</Button>}
               </div>
             </div>
 
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="mb-4 sm:mb-6">
+              <CardContent className="p-3 sm:pt-6 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+                    <Input placeholder="Search projects..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-10 text-sm" />
                   </div>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger><Filter className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="All Categories" /></SelectTrigger>
+                    <SelectTrigger className="h-10"><Filter className="h-4 w-4 mr-2 text-muted-foreground" /><SelectValue placeholder="All Categories" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
                       {categories.map(category => <SelectItem key={category} value={category}>{category}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">Min ROI</span><span className="font-medium">{minROI}%+</span></div>
+                    <div className="flex items-center justify-between text-xs sm:text-sm"><span className="text-muted-foreground">Min ROI</span><span className="font-medium">{minROI}%+</span></div>
                     <Slider value={[minROI]} onValueChange={(value) => setMinROI(value[0])} max={20} step={1} className="w-full" />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">Min Progress</span><span className="font-medium">{minProgress}%+</span></div>
+                    <div className="flex items-center justify-between text-xs sm:text-sm"><span className="text-muted-foreground">Min Progress</span><span className="font-medium">{minProgress}%+</span></div>
                     <Slider value={[minProgress]} onValueChange={(value) => setMinProgress(value[0])} max={100} step={5} className="w-full" />
                   </div>
                 </div>
@@ -240,15 +240,15 @@ const DePINFinance = () => {
 
             {filteredProjects.length === 0 ? (
               <Card className="card-glow">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Search className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No projects found</h3>
-                  <p className="text-muted-foreground text-center mb-4">Try adjusting your filters or search terms</p>
-                  <Button variant="outline" onClick={clearFilters}>Clear all filters</Button>
+                <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12 p-4 sm:p-6">
+                  <Search className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold mb-2">No projects found</h3>
+                  <p className="text-sm text-muted-foreground text-center mb-4">Try adjusting your filters or search terms</p>
+                  <Button variant="outline" onClick={clearFilters} size="sm">Clear all filters</Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {filteredProjects.map((project) => {
                   const Icon = categoryIcons[project.category] || Zap;
                   const iconColors = { 'Solar': 'text-yellow-500', 'WiFi': 'text-blue-500', 'Mobility': 'text-purple-500', 'IoT': 'text-green-500', 'Energy Storage': 'text-orange-500', 'Telecom': 'text-cyan-500', 'Other': 'text-primary' };

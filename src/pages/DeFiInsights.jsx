@@ -60,49 +60,49 @@ const DeFiInsights = () => {
   useEffect(() => { setChartData(generateChartData()); }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold mooncreditfi-glow">DeFi Insights</h1>
-        <div className="text-sm text-muted-foreground">Live on-chain analytics</div>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h1 className="text-2xl sm:text-3xl font-bold mooncreditfi-glow">DeFi Insights</h1>
+        <div className="text-xs sm:text-sm text-muted-foreground">Live on-chain analytics</div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <StatsCard title="Lending APY" value={lendingRateDisplay} description="Current yield for lenders" icon={TrendingUp} trend={0.3} />
         <StatsCard title="Borrowing APR" value={borrowingRateDisplay} description="Current rate for borrowers" icon={DollarSign} trend={-0.2} />
         <StatsCard title="Active Loans" value={activeLoansCount > 0 ? activeLoansCount.toLocaleString() : '0'} description="Current active positions" icon={Users} />
         <StatsCard title="Total TVL" value={`${totalTVL.toFixed(4)} SUI`} description="Lending + DePIN combined" icon={Droplets} trend={12.5} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <Card className="card-glow">
-          <CardHeader><CardTitle className="flex items-center gap-2"><PiggyBank className="h-5 w-5 text-primary" />Lending Pool Stats</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">Total Deposited</p><p className="text-xl font-bold">{lendingPool.totalDeposited.toFixed(4)} SUI</p></div>
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">Total Borrowed</p><p className="text-xl font-bold">{lendingPool.totalBorrowed.toFixed(4)} SUI</p></div>
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">Available Liquidity</p><p className="text-xl font-bold">{lendingPool.availableLiquidity.toFixed(4)} SUI</p></div>
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">Utilization</p><p className="text-xl font-bold">{utilizationPercent.toFixed(1)}%</p><Progress value={utilizationPercent} className="mt-1 h-1" /></div>
+          <CardHeader className="p-4 sm:p-6"><CardTitle className="flex items-center gap-2 text-base sm:text-lg"><PiggyBank className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />Lending Pool Stats</CardTitle></CardHeader>
+          <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Total Deposited</p><p className="text-base sm:text-xl font-bold">{lendingPool.totalDeposited.toFixed(4)} SUI</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Total Borrowed</p><p className="text-base sm:text-xl font-bold">{lendingPool.totalBorrowed.toFixed(4)} SUI</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Available Liquidity</p><p className="text-base sm:text-xl font-bold">{lendingPool.availableLiquidity.toFixed(4)} SUI</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Utilization</p><p className="text-base sm:text-xl font-bold">{utilizationPercent.toFixed(1)}%</p><Progress value={utilizationPercent} className="mt-1 h-1" /></div>
             </div>
           </CardContent>
         </Card>
         <Card className="card-glow">
-          <CardHeader><CardTitle className="flex items-center gap-2"><Coins className="h-5 w-5 text-primary" />DePIN Finance Stats</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">Current Amount</p><p className="text-xl font-bold">{depinPool ? depinPool.currentAmount.toFixed(4) : '0'} SUI</p></div>
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">Target Amount</p><p className="text-xl font-bold">{depinPool ? depinPool.targetAmount.toFixed(4) : '0'} SUI</p></div>
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">APY</p><p className="text-xl font-bold text-green-500">{depinPool ? depinPool.apy.toFixed(2) : '0'}%</p></div>
-              <div className="p-3 bg-muted/50 rounded-lg"><p className="text-sm text-muted-foreground">Status</p><p className="text-xl font-bold">{depinPool?.isActive ? 'Active' : 'Inactive'}</p></div>
+          <CardHeader className="p-4 sm:p-6"><CardTitle className="flex items-center gap-2 text-base sm:text-lg"><Coins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />DePIN Finance Stats</CardTitle></CardHeader>
+          <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Current Amount</p><p className="text-base sm:text-xl font-bold">{depinPool ? depinPool.currentAmount.toFixed(4) : '0'} SUI</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Target Amount</p><p className="text-base sm:text-xl font-bold">{depinPool ? depinPool.targetAmount.toFixed(4) : '0'} SUI</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">APY</p><p className="text-base sm:text-xl font-bold text-green-500">{depinPool ? depinPool.apy.toFixed(2) : '0'}%</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Status</p><p className="text-base sm:text-xl font-bold">{depinPool?.isActive ? 'Active' : 'Inactive'}</p></div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="liquidity">Liquidity Pools</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="liquidity" className="text-xs sm:text-sm">Liquidity</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
