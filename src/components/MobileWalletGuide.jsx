@@ -41,7 +41,7 @@ const MobileWalletGuide = () => {
   const handleQuickOpen = async () => {
     setIsOpening(true);
     try {
-      await openWallet('suiet', currentUrl);
+      await openWallet('suiet');
       // User will be redirected or app will open
       setTimeout(() => {
         setIsOpening(false);

@@ -1,6 +1,3 @@
-/**
- * Wallet helper utilities for mobile and desktop wallet detection
- */
 
 /**
  * Detect if user is on a mobile device
@@ -78,23 +75,18 @@ const WALLET_STORES = {
   },
 };
 
-/**
- * Generate deep link for opening app in wallet browser
- * @param {string} url - The app URL to open
- * @param {string} wallet - Wallet name ('suiet', 'slush')
- */
-export const generateWalletDeepLink = (url, wallet = 'suiet') => {
-  const encodedUrl = encodeURIComponent(url);
-  
+
+export const generateWalletDeepLink = (wallet = 'suiet') => {
   switch (wallet.toLowerCase()) {
     case 'suiet':
-      return `suiet://browser?url=${encodedUrl}`;
+      // Try multiple possible deep link formats
+      return 'suiet://';
     case 'slush':
-      return `slush://browser?url=${encodedUrl}`;
+      return 'slush://';
     case 'ethos':
-      return `ethos://browser?url=${encodedUrl}`;
+      return 'ethos://';
     default:
-      return `suiet://browser?url=${encodedUrl}`;
+      return 'suiet://';
   }
 };
 
@@ -117,46 +109,75 @@ export const getWalletStoreUrl = (wallet = 'suiet') => {
 /**
  * Open wallet app with deep link, fallback to store if not installed
  * @param {string} walletType - 'suiet' or 'slush'
- * @param {string} appUrl - Current app URL to open in wallet browser
  * @returns {Promise<boolean>} - True if wallet opened, false if redirected to store
  */
-export const openWallet = async (walletType = 'suiet', appUrl = window.location.href) => {
+export const openWallet = async (walletType = 'suiet') => {
   return new Promise((resolve) => {
-    // Generate deep link
-    const deepLink = generateWalletDeepLink(appUrl, walletType);
+    // Generate deep link (just opens the wallet app)
+    const deepLink = generateWalletDeepLink(walletType);
     
-    // Try to open wallet app
-    const startTime = Date.now();
-    window.location.href = deepLink;
+    let appOpened = false;
+    let redirectTimeout;
     
-    // Set timeout to redirect to store if app doesn't open
-    const timeout = setTimeout(() => {
-      const elapsed = Date.now() - startTime;
-      
-      // If less than 2 seconds passed, app likely not installed
-      if (elapsed < 2000) {
-        const storeUrl = getWalletStoreUrl(walletType);
-        window.location.href = storeUrl;
-        resolve(false);
-      } else {
-        // App likely opened
-        resolve(true);
-      }
-    }, 1500);
-    
-    // Clear timeout if page becomes hidden (app opened)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        clearTimeout(timeout);
+    // Function to handle successful app opening
+    const handleAppOpened = () => {
+      if (!appOpened) {
+        appOpened = true;
+        clearTimeout(redirectTimeout);
         resolve(true);
       }
     };
     
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Listen for visibility change (app opened)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleAppOpened();
+      }
+    };
     
-    // Cleanup
+    // Listen for blur event (app opened)
+    const handleBlur = () => {
+      handleAppOpened();
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    
+    // Try to open wallet app via deep link
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = deepLink;
+    document.body.appendChild(iframe);
+    
+    // Also try direct navigation as fallback
+    setTimeout(() => {
+      if (!appOpened) {
+        window.location.href = deepLink;
+      }
+    }, 100);
+    
+    // Set timeout to redirect to store if app doesn't open
+    redirectTimeout = setTimeout(() => {
+      // Clean up iframe
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
+      
+      if (!appOpened) {
+        // App didn't open, redirect to store
+        const storeUrl = getWalletStoreUrl(walletType);
+        window.location.href = storeUrl;
+        resolve(false);
+      }
+    }, 2000);
+    
+    // Cleanup listeners after 3 seconds
     setTimeout(() => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
     }, 3000);
   });
 };
