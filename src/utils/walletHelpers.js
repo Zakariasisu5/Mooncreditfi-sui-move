@@ -63,10 +63,15 @@ export const getAvailableWallets = () => {
  * Wallet app store URLs
  */
 const WALLET_STORES = {
-  suiet: {
-    ios: 'https://apps.apple.com/app/suiet-sui-wallet/id1635778853',
-    android: 'https://play.google.com/store/apps/details?id=com.suiet.suiet',
-    web: 'https://suiet.app/',
+  sui: {
+    ios: 'https://apps.apple.com/app/sui-wallet/id6476628026',
+    android: 'https://play.google.com/store/apps/details?id=com.mystenlabs.suiwallet',
+    web: 'https://sui.io/wallet',
+  },
+  splash: {
+    ios: 'https://apps.apple.com/app/splash-wallet/id6478960549',
+    android: 'https://play.google.com/store/apps/details?id=io.cosmostation.splash',
+    web: 'https://splash.im/',
   },
   slush: {
     ios: 'https://apps.apple.com/app/slush-wallet/id6478960549',
@@ -76,27 +81,28 @@ const WALLET_STORES = {
 };
 
 
-export const generateWalletDeepLink = (wallet = 'suiet') => {
+export const generateWalletDeepLink = (wallet = 'sui') => {
   switch (wallet.toLowerCase()) {
-    case 'suiet':
-      // Try multiple possible deep link formats
-      return 'suiet://';
+    case 'sui':
+      return 'sui://';
+    case 'splash':
+      return 'splash://';
     case 'slush':
       return 'slush://';
     case 'ethos':
       return 'ethos://';
     default:
-      return 'suiet://';
+      return 'sui://';
   }
 };
 
 /**
  * Get app store URL for wallet installation
- * @param {string} wallet - Wallet name ('suiet', 'slush')
+ * @param {string} wallet - Wallet name ('sui', 'splash', 'slush')
  */
-export const getWalletStoreUrl = (wallet = 'suiet') => {
+export const getWalletStoreUrl = (wallet = 'sui') => {
   const walletKey = wallet.toLowerCase();
-  const storeInfo = WALLET_STORES[walletKey] || WALLET_STORES.suiet;
+  const storeInfo = WALLET_STORES[walletKey] || WALLET_STORES.sui;
   
   if (isIOS()) {
     return storeInfo.ios;
@@ -108,10 +114,10 @@ export const getWalletStoreUrl = (wallet = 'suiet') => {
 
 /**
  * Open wallet app with deep link, fallback to store if not installed
- * @param {string} walletType - 'suiet' or 'slush'
+ * @param {string} walletType - 'sui', 'splash', or 'slush'
  * @returns {Promise<boolean>} - True if wallet opened, false if redirected to store
  */
-export const openWallet = async (walletType = 'suiet') => {
+export const openWallet = async (walletType = 'sui') => {
   return new Promise((resolve) => {
     // Generate deep link (just opens the wallet app)
     const deepLink = generateWalletDeepLink(walletType);
@@ -257,6 +263,6 @@ export const getWalletConnectionMessage = () => {
   
   return {
     type: 'warning',
-    message: 'Tap "Connect Wallet" to open your Suiet wallet app.',
+    message: 'Tap "Connect Wallet" to open your Sui wallet app.',
   };
 };

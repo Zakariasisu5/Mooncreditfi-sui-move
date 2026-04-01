@@ -41,7 +41,7 @@ const MobileWalletGuide = () => {
   const handleQuickOpen = async () => {
     setIsOpening(true);
     try {
-      await openWallet('suiet');
+      await openWallet('sui');
       // User will be redirected or app will open
       setTimeout(() => {
         setIsOpening(false);
@@ -78,7 +78,7 @@ const MobileWalletGuide = () => {
         <CardContent className="space-y-4">
           <Alert>
             <AlertDescription>
-              To use MoonCreditFi with your Suiet wallet on mobile, open this app inside your wallet's browser for secure connection.
+              To use MoonCreditFi with your Sui wallet on mobile, open this app inside your wallet's browser for secure connection.
             </AlertDescription>
           </Alert>
 
@@ -91,12 +91,12 @@ const MobileWalletGuide = () => {
             {isOpening ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                Opening Suiet...
+                Opening Sui Wallet...
               </>
             ) : (
               <>
                 <Zap className="h-5 w-5 mr-2" />
-                Open in Suiet Wallet
+                Open in Sui Wallet
               </>
             )}
           </Button>
@@ -116,7 +116,7 @@ const MobileWalletGuide = () => {
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
                   1
                 </span>
-                <span>Open your <strong className="text-foreground">Suiet wallet app</strong> on your phone</span>
+                <span>Open your <strong className="text-foreground">Sui wallet app</strong> on your phone</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
@@ -155,9 +155,9 @@ const MobileWalletGuide = () => {
 
           <div className="pt-2 border-t">
             <p className="text-xs text-muted-foreground text-center">
-              Don't have Suiet wallet?{' '}
+              Don't have a Sui wallet?{' '}
               <a
-                href="https://suiet.app/"
+                href="https://sui.io/wallet"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-1"

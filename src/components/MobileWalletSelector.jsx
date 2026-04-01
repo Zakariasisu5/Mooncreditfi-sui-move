@@ -57,11 +57,18 @@ const MobileWalletSelector = ({ onClose, onSuccess }) => {
 
   const wallets = [
     {
-      id: 'suiet',
-      name: 'Suiet',
-      description: 'Most popular Sui wallet',
-      icon: '🔵',
+      id: 'sui',
+      name: 'Sui Wallet',
+      description: 'Official Sui wallet',
+      icon: '💎',
       recommended: true,
+    },
+    {
+      id: 'splash',
+      name: 'Splash',
+      description: 'Multi-chain wallet',
+      icon: '🌊',
+      recommended: false,
     },
     {
       id: 'slush',
