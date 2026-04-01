@@ -445,5 +445,3 @@ MoonCreditFi shifts DeFi from:
 ---
 
 🔥 *Build credit. Unlock capital. Fund the future.*
-
-* Or help you structure your **GitHub repo folders like a pro**
