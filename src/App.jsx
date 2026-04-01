@@ -12,6 +12,7 @@ import { routes } from "./nav-items";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import MobileWalletGuide from "./components/MobileWalletGuide";
+import WalletConnectionStatus from "./components/WalletConnectionStatus";
 import Landing from "./pages/Landing";
 import About from "./pages/About";
 import Terms from "./pages/Terms";
@@ -30,13 +31,16 @@ const App = () => {
       <SuiClientProvider networks={networkConfig} defaultNetwork={ACTIVE_NETWORK}>
         <SuiWalletProvider 
           autoConnect
-          preferredWallets={['Suiet', 'Sui Wallet', 'Ethos Wallet']}
+          preferredWallets={['Suiet', 'Sui Wallet', 'Ethos Wallet', 'Suiet Wallet']}
           enableUnsafeBurner={false}
+          features={['sui:signAndExecuteTransactionBlock']}
+          storageAdapter={typeof window !== 'undefined' ? window.localStorage : undefined}
         >
           <NotificationProvider>
             <WalletProvider>
               <TooltipProvider>
               <MobileWalletGuide />
+              <WalletConnectionStatus />
               <Toaster />
               <HashRouter>
                 <Routes>

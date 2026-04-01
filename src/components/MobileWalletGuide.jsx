@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Smartphone, ExternalLink, Copy, Check } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { isMobileDevice, isInWalletBrowser } from '@/utils/walletHelpers';
 
 const MobileWalletGuide = () => {
   const [showGuide, setShowGuide] = useState(false);
@@ -10,11 +11,8 @@ const MobileWalletGuide = () => {
   const currentUrl = window.location.href;
 
   useEffect(() => {
-    // Detect if user is on mobile and not in a wallet browser
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isInWalletBrowser = /SuietWallet|SuiWallet|EthosWallet/i.test(navigator.userAgent);
-    
-    if (isMobile && !isInWalletBrowser) {
+    // Only show guide on mobile devices outside wallet browsers
+    if (isMobileDevice() && !isInWalletBrowser()) {
       // Check if user has dismissed the guide before
       const dismissed = localStorage.getItem('mobile-wallet-guide-dismissed');
       if (!dismissed) {

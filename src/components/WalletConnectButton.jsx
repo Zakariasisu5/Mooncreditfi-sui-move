@@ -1,10 +1,30 @@
 import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit';
 import { Button } from '@/components/ui/button';
 import { Wallet, ChevronDown } from 'lucide-react';
+import { isMobileDevice, isInWalletBrowser } from '@/utils/walletHelpers';
 import '@mysten/dapp-kit/dist/index.css';
 
 const WalletConnectButton = () => {
   const account = useCurrentAccount();
+  const mobile = isMobileDevice();
+  const inWalletBrowser = isInWalletBrowser();
+
+  // On mobile outside wallet browser, show helpful message
+  if (mobile && !inWalletBrowser && !account) {
+    return (
+      <Button
+        variant="outline"
+        className="wallet-connect-btn"
+        onClick={() => {
+          alert('Please open this app inside your Suiet wallet browser to connect.');
+        }}
+      >
+        <Wallet className="h-4 w-4 mr-2" />
+        <span className="hidden sm:inline">Connect Wallet</span>
+        <span className="sm:hidden">Connect</span>
+      </Button>
+    );
+  }
 
   return (
     <div className="wallet-connect-wrapper">

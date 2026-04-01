@@ -1,12 +1,12 @@
 import { createNetworkConfig } from '@mysten/dapp-kit';
 
-const { networkConfig } = createNetworkConfig({
+const { networkConfig, useNetworkVariable } = createNetworkConfig({
   testnet: { url: 'https://fullnode.testnet.sui.io:443' },
   mainnet: { url: 'https://fullnode.mainnet.sui.io:443' },
   devnet: { url: 'https://fullnode.devnet.sui.io:443' },
 });
 
-export { networkConfig };
+export { networkConfig, useNetworkVariable };
 
 // Deployed package IDs on Sui Testnet - Updated with debt tracking system
 export const SUI_PACKAGE_ID = '0x8853e2763099cbbd1fd5281a9823d8d76d8423a89fb8068d7c21bd4f06118088';
