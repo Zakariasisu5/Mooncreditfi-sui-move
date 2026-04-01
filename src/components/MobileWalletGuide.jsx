@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Smartphone, ExternalLink, Copy, Check } from 'lucide-react';
+import { X, Smartphone, ExternalLink, Copy, Check, Zap } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { isMobileDevice, isInWalletBrowser } from '@/utils/walletHelpers';
+import { isMobileDevice, isInWalletBrowser, openWallet } from '@/utils/walletHelpers';
 
 const MobileWalletGuide = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
   const currentUrl = window.location.href;
 
   useEffect(() => {
@@ -16,7 +17,8 @@ const MobileWalletGuide = () => {
       // Check if user has dismissed the guide before
       const dismissed = localStorage.getItem('mobile-wallet-guide-dismissed');
       if (!dismissed) {
-        setShowGuide(true);
+        // Show guide after a short delay
+        setTimeout(() => setShowGuide(true), 1000);
       }
     }
   }, []);
@@ -36,6 +38,21 @@ const MobileWalletGuide = () => {
     }
   };
 
+  const handleQuickOpen = async () => {
+    setIsOpening(true);
+    try {
+      await openWallet('suiet', currentUrl);
+      // User will be redirected or app will open
+      setTimeout(() => {
+        setIsOpening(false);
+        handleDismiss();
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to open wallet:', error);
+      setIsOpening(false);
+    }
+  };
+
   if (!showGuide) return null;
 
   return (
@@ -47,6 +64,7 @@ const MobileWalletGuide = () => {
             size="icon"
             className="absolute right-2 top-2"
             onClick={handleDismiss}
+            disabled={isOpening}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -60,12 +78,39 @@ const MobileWalletGuide = () => {
         <CardContent className="space-y-4">
           <Alert>
             <AlertDescription>
-              To use MoonCreditFi with your Suiet wallet on mobile, you'll need to open this app inside your wallet's browser. This allows secure connection to your wallet.
+              To use MoonCreditFi with your Suiet wallet on mobile, open this app inside your wallet's browser for secure connection.
             </AlertDescription>
           </Alert>
 
+          {/* Quick Open Button */}
+          <Button
+            onClick={handleQuickOpen}
+            disabled={isOpening}
+            className="w-full h-14 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
+            {isOpening ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                Opening Suiet...
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5 mr-2" />
+                Open in Suiet Wallet
+              </>
+            )}
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or follow these steps</span>
+            </div>
+          </div>
+
           <div className="space-y-3">
-            <h4 className="font-semibold text-sm">Quick Setup (3 steps):</h4>
             <ol className="space-y-3 text-sm text-muted-foreground">
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
@@ -127,6 +172,7 @@ const MobileWalletGuide = () => {
             variant="ghost"
             className="w-full"
             onClick={handleDismiss}
+            disabled={isOpening}
           >
             I understand, continue anyway
           </Button>

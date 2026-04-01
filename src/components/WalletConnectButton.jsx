@@ -1,31 +1,46 @@
+import { useState } from 'react';
 import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit';
 import { Button } from '@/components/ui/button';
-import { Wallet, ChevronDown } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { isMobileDevice, isInWalletBrowser } from '@/utils/walletHelpers';
+import MobileWalletSelector from './MobileWalletSelector';
 import '@mysten/dapp-kit/dist/index.css';
 
 const WalletConnectButton = () => {
   const account = useCurrentAccount();
+  const [showMobileSelector, setShowMobileSelector] = useState(false);
+  
   const mobile = isMobileDevice();
   const inWalletBrowser = isInWalletBrowser();
 
-  // On mobile outside wallet browser, show helpful message
+  // On mobile outside wallet browser, show wallet selector with deep linking
   if (mobile && !inWalletBrowser && !account) {
     return (
-      <Button
-        variant="outline"
-        className="wallet-connect-btn"
-        onClick={() => {
-          alert('Please open this app inside your Suiet wallet browser to connect.');
-        }}
-      >
-        <Wallet className="h-4 w-4 mr-2" />
-        <span className="hidden sm:inline">Connect Wallet</span>
-        <span className="sm:hidden">Connect</span>
-      </Button>
+      <>
+        <Button
+          variant="outline"
+          className="wallet-connect-btn min-h-[44px]"
+          onClick={() => setShowMobileSelector(true)}
+        >
+          <Wallet className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">Connect Wallet</span>
+          <span className="sm:hidden">Connect</span>
+        </Button>
+        
+        {showMobileSelector && (
+          <MobileWalletSelector
+            onClose={() => setShowMobileSelector(false)}
+            onSuccess={() => {
+              setShowMobileSelector(false);
+              // User will return from wallet app
+            }}
+          />
+        )}
+      </>
     );
   }
 
+  // Desktop or mobile in wallet browser - use standard ConnectButton
   return (
     <div className="wallet-connect-wrapper">
       <ConnectButton
