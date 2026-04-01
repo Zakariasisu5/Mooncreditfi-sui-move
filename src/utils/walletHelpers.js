@@ -140,45 +140,69 @@ export const openWallet = async (walletType = 'suiet') => {
       handleAppOpened();
     };
     
+    // Listen for pagehide event (app opened)
+    const handlePageHide = () => {
+      handleAppOpened();
+    };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleBlur);
+    window.addEventListener('pagehide', handlePageHide);
     
-    // Try to open wallet app via deep link
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = deepLink;
-    document.body.appendChild(iframe);
+    // Try to open wallet app via hidden iframe (prevents navigation error)
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+      
+      // Set iframe src to deep link
+      iframe.src = deepLink;
+      
+      // Clean up iframe after a short delay
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    } catch (e) {
+      console.log('Iframe method failed, trying direct link');
+    }
     
-    // Also try direct navigation as fallback
+    // Fallback: try creating a link and clicking it
     setTimeout(() => {
       if (!appOpened) {
-        window.location.href = deepLink;
+        try {
+          const link = document.createElement('a');
+          link.href = deepLink;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        } catch (e) {
+          console.log('Link click method failed');
+        }
       }
     }, 100);
     
     // Set timeout to redirect to store if app doesn't open
     redirectTimeout = setTimeout(() => {
-      // Clean up iframe
-      if (iframe.parentNode) {
-        document.body.removeChild(iframe);
-      }
-      
       if (!appOpened) {
         // App didn't open, redirect to store
         const storeUrl = getWalletStoreUrl(walletType);
         window.location.href = storeUrl;
         resolve(false);
       }
-    }, 2000);
+    }, 2500);
     
-    // Cleanup listeners after 3 seconds
+    // Cleanup listeners after 4 seconds
     setTimeout(() => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
-      if (iframe.parentNode) {
-        document.body.removeChild(iframe);
-      }
-    }, 3000);
+      window.removeEventListener('pagehide', handlePageHide);
+    }, 4000);
   });
 };
 
