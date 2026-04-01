@@ -62,30 +62,30 @@ const MobileWalletGuide = () => {
         <CardContent className="space-y-4">
           <Alert>
             <AlertDescription>
-              To connect your Suiet (Slash) wallet on mobile, please open this app in your wallet's built-in browser.
+              To use MoonCreditFi with your Suiet wallet on mobile, you'll need to open this app inside your wallet's browser. This allows secure connection to your wallet.
             </AlertDescription>
           </Alert>
 
           <div className="space-y-3">
-            <h4 className="font-semibold text-sm">How to connect:</h4>
+            <h4 className="font-semibold text-sm">Quick Setup (3 steps):</h4>
             <ol className="space-y-3 text-sm text-muted-foreground">
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
                   1
                 </span>
-                <span>Open your Suiet (Slash) wallet app</span>
+                <span>Open your <strong className="text-foreground">Suiet wallet app</strong> on your phone</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
                   2
                 </span>
-                <span>Find the built-in browser or dApp browser</span>
+                <span>Tap the <strong className="text-foreground">Browser</strong> or <strong className="text-foreground">Discover</strong> tab at the bottom</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
                   3
                 </span>
-                <span>Copy and paste this URL in the wallet browser</span>
+                <span>Copy the URL below and paste it in the wallet browser's address bar</span>
               </li>
             </ol>
           </div>
