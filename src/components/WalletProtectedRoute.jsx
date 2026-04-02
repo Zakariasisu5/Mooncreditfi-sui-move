@@ -1,10 +1,12 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useCurrentAccount } from '@mysten/dapp-kit';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wallet } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import WalletConnectButton from './WalletConnectButton';
 
 /**
  * Wallet-based route protection
- * Redirects to landing page if wallet is not connected
+ * Shows connect wallet prompt if wallet is not connected
  */
 const WalletProtectedRoute = ({ children }) => {
   const account = useCurrentAccount();
@@ -22,9 +24,26 @@ const WalletProtectedRoute = ({ children }) => {
     );
   }
 
-  // Redirect to landing if not connected
+  // Show connect wallet prompt instead of redirecting
   if (!account) {
-    return <Navigate to="/" replace state={{ from: location }} />;
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle>Wallet Connection Required</CardTitle>
+            <CardDescription>
+              Please connect your wallet to access this page
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <WalletConnectButton variant="cta" size="lg" />
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   // Wallet connected - render protected content

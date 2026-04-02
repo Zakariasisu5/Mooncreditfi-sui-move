@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useCurrentAccount, useDisconnectWallet } from '@mysten/dapp-kit';
 import WalletConnectButton from './WalletConnectButton';
 import NotificationButton from './NotificationButton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 
 const Navbar = ({ onToggleSidebar }) => {
   const account = useCurrentAccount();
+  const { mutate: disconnect } = useDisconnectWallet();
   const location = useLocation();
   const [copied, setCopied] = useState(false);
   
@@ -40,8 +41,8 @@ const Navbar = ({ onToggleSidebar }) => {
   };
 
   const handleDisconnect = () => {
-    // The wallet will handle disconnection through the ConnectButton
-    toast.info('Please disconnect through your wallet');
+    disconnect();
+    toast.success('Wallet disconnected');
   };
 
   return (
