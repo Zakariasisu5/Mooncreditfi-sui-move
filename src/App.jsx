@@ -39,11 +39,9 @@ const App = () => {
       <SuiClientProvider networks={networkConfig} defaultNetwork={ACTIVE_NETWORK}>
         <SuiWalletProvider 
           autoConnect={true}
-          preferredWallets={['Sui Wallet']}
+          preferredWallets={['Sui Wallet', 'Splash Wallet']}
           enableUnsafeBurner={false}
-          storageAdapter={typeof window !== 'undefined' ? window.localStorage : undefined}
-          storage={typeof window !== 'undefined' ? window.localStorage : undefined}
-          storageKey="sui-wallet-connection"
+          features={['sui:signTransactionBlock', 'sui:signAndExecuteTransactionBlock']}
         >
           <NotificationProvider>
             <WalletProvider>
