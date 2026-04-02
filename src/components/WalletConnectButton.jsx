@@ -35,38 +35,8 @@ const WalletConnectButton = () => {
     });
   }, [mobile, inWalletBrowser, account, wallets]);
 
-  // Auto-connect if in wallet browser - try all available wallets
-  useEffect(() => {
-    if (mobile && inWalletBrowser && !account && wallets.length > 0 && !isConnecting) {
-      console.log('Attempting auto-connect in wallet browser...');
-      
-      // Try to find any Sui wallet
-      const suiWallet = wallets.find(w => 
-        w.name.toLowerCase().includes('sui')
-      ) || wallets[0]; // Fallback to first wallet
-      
-      if (suiWallet) {
-        console.log('Auto-connecting to:', suiWallet.name);
-        setIsConnecting(true);
-        
-        connect(
-          { wallet: suiWallet },
-          {
-            onSuccess: () => {
-              console.log('Auto-connect successful!');
-              setIsConnecting(false);
-              toast.success('Wallet connected successfully!');
-            },
-            onError: (error) => {
-              console.error('Auto-connect failed:', error);
-              setIsConnecting(false);
-              toast.error('Auto-connect failed. Please connect manually.');
-            },
-          }
-        );
-      }
-    }
-  }, [mobile, inWalletBrowser, account, wallets, connect, isConnecting]);
+  // Removed auto-connect - it was causing issues on mobile
+  // Users should manually click Connect Wallet button even in wallet browser
 
   // On mobile outside wallet browser - show wallet selector
   if (mobile && !inWalletBrowser && !account) {
@@ -104,7 +74,7 @@ const WalletConnectButton = () => {
   }
 
   // Desktop or mobile in wallet browser - use standard ConnectButton
-  // Force show even if auto-connect fails
+  // Always show ConnectButton for manual connection
   return (
     <div className="wallet-connect-wrapper">
       <ConnectButton
@@ -115,7 +85,7 @@ const WalletConnectButton = () => {
             <span className="sm:hidden">Connect</span>
           </span>
         }
-        className="wallet-connect-btn"
+        className="wallet-connect-btn min-h-[44px]"
       />
     </div>
   );

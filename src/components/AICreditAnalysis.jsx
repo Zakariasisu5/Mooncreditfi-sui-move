@@ -78,18 +78,18 @@ const AICreditAnalysis = ({ walletData, onAnalysisComplete }) => {
 
   return (
     <Card className="card-glow overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
-        <div className="flex items-center justify-between">
+      <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/20">
-              <Brain className="h-6 w-6 text-primary" />
+              <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </div>
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 AI Credit Risk Analysis
-                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-primary animate-pulse" />
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm">
                 Powered by advanced AI reasoning for transparent, explainable credit assessment
               </CardDescription>
             </div>
@@ -97,44 +97,45 @@ const AICreditAnalysis = ({ walletData, onAnalysisComplete }) => {
           <Button 
             onClick={runAnalysis} 
             disabled={isAnalyzing || !walletData?.walletAddress}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto min-h-[44px]"
+            size="sm"
           >
             {isAnalyzing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Analyzing...
+                <span className="text-sm">Analyzing...</span>
               </>
             ) : (
               <>
                 <Brain className="h-4 w-4" />
-                Run AI Analysis
+                <span className="text-sm">Run AI Analysis</span>
               </>
             )}
           </Button>
         </div>
       </CardHeader>
       
-      <CardContent className="pt-6">
+      <CardContent className="pt-4 sm:pt-6 p-4 sm:p-6">
         {!analysis && !isAnalyzing && (
-          <div className="text-center py-12 space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Brain className="h-8 w-8 text-primary/60" />
+          <div className="text-center py-8 sm:py-12 space-y-3 sm:space-y-4">
+            <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-primary/60" />
             </div>
             <div>
-              <p className="text-muted-foreground">Click "Run AI Analysis" to get your comprehensive credit assessment</p>
-              <p className="text-sm text-muted-foreground/60 mt-1">Uses on-chain behavior to determine creditworthiness</p>
+              <p className="text-sm sm:text-base text-muted-foreground px-4">Click "Run AI Analysis" to get your comprehensive credit assessment</p>
+              <p className="text-xs sm:text-sm text-muted-foreground/60 mt-1 px-4">Uses on-chain behavior to determine creditworthiness</p>
             </div>
           </div>
         )}
 
         {isAnalyzing && (
-          <div className="text-center py-12 space-y-4">
-            <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-              <Brain className="h-10 w-10 text-primary animate-bounce" />
+          <div className="text-center py-8 sm:py-12 space-y-3 sm:space-y-4">
+            <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <Brain className="h-8 w-8 sm:h-10 sm:w-10 text-primary animate-bounce" />
             </div>
-            <div className="space-y-2">
-              <p className="font-medium">AI is analyzing your wallet...</p>
-              <p className="text-sm text-muted-foreground">Evaluating transaction history, repayment behavior, and risk factors</p>
+            <div className="space-y-2 px-4">
+              <p className="font-medium text-sm sm:text-base">AI is analyzing your wallet...</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Evaluating transaction history, repayment behavior, and risk factors</p>
             </div>
             <div className="flex justify-center gap-1">
               {[0, 1, 2].map((i) => (
@@ -149,14 +150,14 @@ const AICreditAnalysis = ({ walletData, onAnalysisComplete }) => {
         )}
 
         {analysis && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Main Score Display */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
               {/* Credit Score */}
-              <div className="col-span-1 md:col-span-1 p-6 rounded-xl bg-gradient-to-br from-background to-muted/30 border border-border/50">
-                <div className="text-center space-y-3">
-                  <p className="text-sm text-muted-foreground font-medium">AI Credit Score</p>
-                  <div className={`text-5xl font-bold ${getScoreColor(analysis.credit_score)}`}>
+              <div className="col-span-1 md:col-span-1 p-4 sm:p-6 rounded-xl bg-gradient-to-br from-background to-muted/30 border border-border/50">
+                <div className="text-center space-y-2 sm:space-y-3">
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">AI Credit Score</p>
+                  <div className={`text-4xl sm:text-5xl font-bold ${getScoreColor(analysis.credit_score)}`}>
                     {analysis.credit_score}
                   </div>
                   <p className="text-xs text-muted-foreground">out of 100</p>
@@ -168,41 +169,41 @@ const AICreditAnalysis = ({ walletData, onAnalysisComplete }) => {
               </div>
 
               {/* Risk Level & Eligibility */}
-              <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-muted/30 border border-border/50 flex flex-col items-center justify-center space-y-2">
-                  <Shield className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Risk Level</p>
-                  <Badge className={`text-sm px-4 py-1 ${getRiskColor(analysis.risk_level)}`}>
+              <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/50 flex flex-col items-center justify-center space-y-2">
+                  <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Risk Level</p>
+                  <Badge className={`text-xs sm:text-sm px-3 sm:px-4 py-1 ${getRiskColor(analysis.risk_level)}`}>
                     {analysis.risk_level} Risk
                   </Badge>
                 </div>
 
-                <div className="p-4 rounded-xl bg-muted/30 border border-border/50 flex flex-col items-center justify-center space-y-2">
+                <div className="p-3 sm:p-4 rounded-xl bg-muted/30 border border-border/50 flex flex-col items-center justify-center space-y-2">
                   {analysis.loan_eligibility === 'Eligible' ? (
-                    <CheckCircle2 className="h-8 w-8 text-green-400" />
+                    <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
                   ) : (
-                    <XCircle className="h-8 w-8 text-red-400" />
+                    <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-400" />
                   )}
-                  <p className="text-xs text-muted-foreground">Loan Status</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Status</p>
                   <Badge 
                     variant={analysis.loan_eligibility === 'Eligible' ? 'default' : 'destructive'}
-                    className="text-sm px-4 py-1"
+                    className="text-xs sm:text-sm px-3 sm:px-4 py-1"
                   >
                     {analysis.loan_eligibility}
                   </Badge>
                 </div>
 
-                <div className="col-span-2 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <DollarSign className="h-6 w-6 text-primary" />
+                <div className="col-span-2 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Recommended Loan Amount</p>
-                      <p className="text-2xl font-bold text-primary">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Recommended Loan Amount</p>
+                      <p className="text-xl sm:text-2xl font-bold text-primary">
                         ${analysis.recommended_loan_amount_usd?.toLocaleString()}
                       </p>
                     </div>
                   </div>
-                  <Target className="h-5 w-5 text-primary/50" />
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary/50" />
                 </div>
               </div>
             </div>
@@ -210,32 +211,32 @@ const AICreditAnalysis = ({ walletData, onAnalysisComplete }) => {
             <Separator />
 
             {/* Explanation */}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <h4 className="font-semibold">AI Assessment Summary</h4>
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <h4 className="font-semibold text-sm sm:text-base">AI Assessment Summary</h4>
               </div>
-              <p className="text-muted-foreground leading-relaxed bg-muted/30 p-4 rounded-lg border border-border/50">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed bg-muted/30 p-3 sm:p-4 rounded-lg border border-border/50">
                 {analysis.explanation}
               </p>
             </div>
 
             {/* AI Reasoning */}
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary" />
-                <h4 className="font-semibold">AI Reasoning Breakdown</h4>
+                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <h4 className="font-semibold text-sm sm:text-base">AI Reasoning Breakdown</h4>
               </div>
               <ul className="space-y-2">
                 {analysis.ai_reasoning_summary?.map((point, index) => (
                   <li 
                     key={index} 
-                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/30"
+                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/20 border border-border/30"
                   >
-                    <div className="mt-0.5 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-primary">{index + 1}</span>
+                    <div className="mt-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] sm:text-xs font-bold text-primary">{index + 1}</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{point}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">{point}</span>
                   </li>
                 ))}
               </ul>
@@ -244,7 +245,7 @@ const AICreditAnalysis = ({ walletData, onAnalysisComplete }) => {
             {/* Disclaimer */}
             <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
               <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-yellow-500/80">
+              <p className="text-[10px] sm:text-xs text-yellow-500/80">
                 This AI assessment is for informational purposes. Final loan decisions may include additional verification steps. 
                 Credit profiles are built on transparent, on-chain behavior.
               </p>
