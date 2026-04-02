@@ -20,7 +20,6 @@ const Sidebar = ({ sidebarOpen = false, onClose }) => {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold mooncreditfi-glow">MoonCreditFi</h2>
-          <p className="text-sm text-muted-foreground">Moonshot Universe</p>
         </div>
         <button className="md:hidden p-2 rounded" onClick={() => onClose && onClose()} aria-label="Close menu">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
