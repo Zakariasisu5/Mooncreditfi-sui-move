@@ -91,6 +91,12 @@ export const getWalletStoreUrl = (wallet = 'sui') => {
  * @returns {Promise<{opened: boolean, method: string}>}
  */
 export const openWalletWithReturn = async (walletType = 'sui', returnUrl = null) => {
+  // Only works on mobile
+  if (!isMobileDevice()) {
+    console.warn('Deep linking only works on mobile devices');
+    return { opened: false, method: 'desktop-not-supported' };
+  }
+  
   const currentUrl = returnUrl || window.location.href;
   const deepLink = generateWalletDeepLink(walletType);
   
@@ -113,11 +119,25 @@ export const openWalletWithReturn = async (walletType = 'sui', returnUrl = null)
       }
     };
     
+    // Detect if app opened by checking visibility
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleAppOpened('visibility-change');
+      }
+    };
+    
+    const handleBlur = () => {
+      handleAppOpened('blur');
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+    
     // Method 1: Try window.location (most reliable for iOS)
     const attemptDirectNavigation = () => {
       try {
         window.location.href = deepLink;
-        handleAppOpened('direct-navigation');
+        // Don't call handleAppOpened here - wait for visibility change
       } catch (e) {
         console.log('Direct navigation failed:', e);
       }
@@ -140,8 +160,6 @@ export const openWalletWithReturn = async (walletType = 'sui', returnUrl = null)
             document.body.removeChild(iframe);
           }
         }, 1000);
-        
-        handleAppOpened('iframe');
       } catch (e) {
         console.log('Iframe method failed:', e);
       }
@@ -161,8 +179,6 @@ export const openWalletWithReturn = async (walletType = 'sui', returnUrl = null)
             document.body.removeChild(link);
           }
         }, 100);
-        
-        handleAppOpened('anchor-click');
       } catch (e) {
         console.log('Anchor click failed:', e);
       }
@@ -191,11 +207,20 @@ export const openWalletWithReturn = async (walletType = 'sui', returnUrl = null)
     // If wallet doesn't open, redirect to store
     setTimeout(() => {
       if (!appOpened) {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('blur', handleBlur);
+        
         const storeUrl = getWalletStoreUrl(walletType);
         window.location.href = storeUrl;
         resolve({ opened: false, method: 'store-redirect' });
       }
     }, 2500);
+    
+    // Cleanup listeners after 4 seconds
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    }, 4000);
   });
 };
 

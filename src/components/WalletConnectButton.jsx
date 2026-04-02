@@ -100,6 +100,7 @@ const WalletConnectButton = () => {
    * Opens wallet app on mobile, shows popup on desktop
    */
   const handleMetaMaskStyleConnect = async () => {
+    // Only use deep linking on mobile
     if (mobile && !inWalletBrowser) {
       // Mobile outside wallet browser - open wallet app
       setIsConnecting(true);
@@ -119,7 +120,7 @@ const WalletConnectButton = () => {
           setConnectionState('waiting');
           // Keep isConnecting true - will be cleared when user returns
         } else {
-          // Redirected to store
+          // Redirected to store or failed
           toast.dismiss('wallet-opening');
           setIsConnecting(false);
           setConnectionState('idle');
@@ -131,10 +132,8 @@ const WalletConnectButton = () => {
         setIsConnecting(false);
         setConnectionState('idle');
       }
-    } else {
-      // Desktop or in wallet browser - use standard connection
-      // The ConnectButton will handle this
     }
+    // Desktop will use the standard ConnectButton below
   };
 
   // Show loading state while waiting for return
