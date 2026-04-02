@@ -54,9 +54,9 @@ const MobileWalletSelector = ({ onClose, onSuccess }) => {
     window.open(storeUrl, '_blank');
   };
 
-  // Get wallets from configuration
+  // Get wallets from configuration (excluding Suiet)
   const wallets = Object.values(SUPPORTED_WALLETS).filter(w => 
-    ['sui', 'suiet', 'splash', 'slush'].includes(w.id)
+    ['sui', 'splash', 'slush'].includes(w.id)
   );
 
   return (

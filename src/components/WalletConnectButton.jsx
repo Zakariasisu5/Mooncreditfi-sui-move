@@ -27,8 +27,7 @@ const WalletConnectButton = () => {
   useEffect(() => {
     if (mobile && inWalletBrowser && !account && wallets.length > 0 && !isConnecting) {
       const suiWallet = wallets.find(w => 
-        w.name.toLowerCase().includes('sui') || 
-        w.name.toLowerCase().includes('suiet')
+        w.name.toLowerCase().includes('sui wallet')
       );
       
       if (suiWallet) {

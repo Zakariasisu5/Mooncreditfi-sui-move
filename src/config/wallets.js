@@ -20,21 +20,6 @@ export const SUPPORTED_WALLETS = {
     },
     recommended: true,
   },
-  suiet: {
-    id: 'suiet',
-    name: 'Suiet Wallet',
-    displayName: 'Suiet',
-    description: 'Popular Sui wallet',
-    icon: '🦊',
-    deepLink: 'suiet://',
-    downloadUrls: {
-      ios: 'https://apps.apple.com/app/suiet-sui-wallet/id1635388528',
-      android: 'https://play.google.com/store/apps/details?id=com.suiet.wallet',
-      chrome: 'https://chrome.google.com/webstore/detail/suiet-sui-wallet/khpkpbbcccdmmclmpigdgddabeilkdpd',
-      web: 'https://suiet.app/',
-    },
-    recommended: false,
-  },
   splash: {
     id: 'splash',
     name: 'Splash Wallet',

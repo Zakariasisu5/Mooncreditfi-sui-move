@@ -38,7 +38,7 @@ const App = () => {
       <SuiClientProvider networks={networkConfig} defaultNetwork={ACTIVE_NETWORK}>
         <SuiWalletProvider 
           autoConnect={false}
-          preferredWallets={['Sui Wallet', 'Suiet Wallet']}
+          preferredWallets={['Sui Wallet']}
           enableUnsafeBurner={false}
           storageAdapter={typeof window !== 'undefined' ? window.localStorage : undefined}
           storage={typeof window !== 'undefined' ? window.localStorage : undefined}
