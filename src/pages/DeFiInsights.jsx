@@ -6,13 +6,13 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Users, Droplets, Activity, BarChart3, PiggyBank, Coins } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useWalletContext } from '@/contexts/WalletContext';
-import { useLendingPool, useDePINProject } from '@/hooks/useContractData';
-import { DEPIN_FINANCE_OBJECT_ID } from '@/config/sui';
+import { useLendingPool, useDePINProjects } from '@/hooks/useContractData';
+import { DEPIN_PROJECTS } from '@/config/sui';
 
 const DeFiInsights = () => {
   const { account: address } = useWalletContext();
   const { data: lendingPoolData, isLoading: isLoadingPool } = useLendingPool();
-  const { data: depinProjectData, isLoading: isLoadingDepin } = useDePINProject(DEPIN_FINANCE_OBJECT_ID);
+  const { data: depinProjects, isLoading: isLoadingDepin } = useDePINProjects(DEPIN_PROJECTS);
 
   // Real on-chain data
   const lendingPool = lendingPoolData || { 
@@ -22,14 +22,13 @@ const DeFiInsights = () => {
     utilizationRate: 0, 
     interestRate: 5.0 
   };
-  const depinPool = depinProjectData;
 
   const lendingRateDisplay = `${lendingPool.interestRate.toFixed(2)}%`;
   const borrowingRateDisplay = `${(lendingPool.interestRate + 2).toFixed(2)}%`;
   const utilizationPercent = lendingPool.utilizationRate;
 
   const lendingTVL = parseFloat(lendingPool.totalDeposited);
-  const depinTVL = depinPool ? parseFloat(depinPool.currentAmount || 0) : 0;
+  const depinTVL = depinProjects?.reduce((sum, project) => sum + project.currentAmount, 0) || 0;
   const totalTVL = lendingTVL + depinTVL;
 
   const [activeLoansCount] = useState(0);
@@ -89,10 +88,10 @@ const DeFiInsights = () => {
           <CardHeader className="p-4 sm:p-6"><CardTitle className="flex items-center gap-2 text-base sm:text-lg"><Coins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />DePIN Finance Stats</CardTitle></CardHeader>
           <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
             <div className="grid grid-cols-2 gap-2 sm:gap-4">
-              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Current Amount</p><p className="text-base sm:text-xl font-bold">{depinPool ? depinPool.currentAmount.toFixed(4) : '0'} SUI</p></div>
-              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Target Amount</p><p className="text-base sm:text-xl font-bold">{depinPool ? depinPool.targetAmount.toFixed(4) : '0'} SUI</p></div>
-              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">APY</p><p className="text-base sm:text-xl font-bold text-green-500">{depinPool ? depinPool.apy.toFixed(2) : '0'}%</p></div>
-              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Status</p><p className="text-base sm:text-xl font-bold">{depinPool?.isActive ? 'Active' : 'Inactive'}</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Total DePIN TVL</p><p className="text-base sm:text-xl font-bold">{depinTVL.toFixed(4)} SUI</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Active Projects</p><p className="text-base sm:text-xl font-bold">{depinProjects?.length || 0}</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Avg APY</p><p className="text-base sm:text-xl font-bold text-green-500">{depinProjects && depinProjects.length > 0 ? (depinProjects.reduce((sum, p) => sum + p.apy, 0) / depinProjects.length).toFixed(2) : '0'}%</p></div>
+              <div className="p-2 sm:p-3 bg-muted/50 rounded-lg"><p className="text-xs sm:text-sm text-muted-foreground">Status</p><p className="text-base sm:text-xl font-bold">Active</p></div>
             </div>
           </CardContent>
         </Card>

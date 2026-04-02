@@ -5,7 +5,8 @@ import { TrendingUp, DollarSign, Users, Wallet, CreditCard, TrendingDown } from 
 import { Link } from 'react-router-dom';
 import StatsCard from '@/components/StatsCard';
 import { useWalletContext } from '@/contexts/WalletContext';
-import { useLendingData, useMaxBorrowLimit, useUserDeposits } from '@/hooks/useContractData';
+import { useLendingData, useMaxBorrowLimit, useUserDeposits, useDePINProjects } from '@/hooks/useContractData';
+import { DEPIN_PROJECTS } from '@/config/sui';
 import { motion } from 'framer-motion';
 
 // Fallback price history for SUI trends
@@ -24,6 +25,7 @@ const Index = () => {
   const { pool, profile, balance, isLoading } = useLendingData();
   const { creditScore, maxBorrowLimit } = useMaxBorrowLimit();
   const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
+  const { data: depinProjects } = useDePINProjects(DEPIN_PROJECTS);
 
   // Real on-chain data
   const depositedBalance = userDeposits?.netDeposited || 0;
@@ -31,6 +33,10 @@ const Index = () => {
   const activeLoanAmount = profile?.debt || 0;
   const totalDeposited = pool?.totalDeposited || 0;
   const currentAPY = pool?.interestRate || 5.0;
+  
+  // Calculate combined TVL (Lending + DePIN)
+  const depinTVL = depinProjects?.reduce((sum, project) => sum + project.currentAmount, 0) || 0;
+  const totalTVL = totalDeposited + depinTVL;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -91,8 +97,8 @@ const Index = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           <StatsCard
             title="TVL"
-            value={`${parseFloat(totalDeposited).toFixed(2)} SUI`}
-            description="Total Value Locked"
+            value={`${parseFloat(totalTVL).toFixed(2)} SUI`}
+            description="Lending + DePIN combined"
             icon={DollarSign}
             trend={12.5}
           />

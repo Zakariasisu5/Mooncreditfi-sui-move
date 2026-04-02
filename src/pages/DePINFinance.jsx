@@ -14,24 +14,35 @@ import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { Zap, Sun, Wifi, Car, DollarSign, TrendingUp, Users, Loader2, Shield, Award, ExternalLink, Search, Filter, X } from 'lucide-react';
 import { EXPLORER_URL, DEPIN_PROJECTS } from '@/config/sui';
-import { useDePINProjects, useUserDePINNFTs } from '@/hooks/useContractData';
+import { useDePINProjects, useUserDePINNFTs, useLendingPool } from '@/hooks/useContractData';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { DePINService } from '@/services/contractService';
 
 const DePINFinance = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [fundingAmount, setFundingAmount] = useState('');
+  const [fundingAmounts, setFundingAmounts] = useState({}); // Track amounts per project
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [minROI, setMinROI] = useState(0);
   const [minProgress, setMinProgress] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const { isConnected, account: address } = useWalletContext();
   const { addNotification } = useNotifications();
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Fetch real on-chain data for all projects
   const { data: depinProjects, isLoading: isLoadingProjects } = useDePINProjects(DEPIN_PROJECTS);
   const { data: userNFTs, isLoading: isLoadingNFTs } = useUserDePINNFTs();
+  const { data: pool } = useLendingPool();
   const { executeTransaction, isPending, isConfirming } = useTransactionExecution();
 
   const isFunding = isPending || isConfirming;
@@ -39,6 +50,11 @@ const DePINFinance = () => {
   // Real on-chain data
   const totalUserInvestment = userNFTs?.reduce((sum, nft) => sum + nft.amount, 0) || 0;
   const userNFTCount = userNFTs?.length || 0;
+  
+  // Calculate combined TVL (Lending + DePIN)
+  const depinTVL = depinProjects?.reduce((sum, project) => sum + project.currentAmount, 0) || 0;
+  const lendingTVL = pool?.totalDeposited || 0;
+  const totalTVL = lendingTVL + depinTVL;
 
   // Convert on-chain projects to display format
   const projects = depinProjects ? depinProjects.map(project => ({
@@ -67,30 +83,38 @@ const DePINFinance = () => {
 
   const handleFundClick = (project) => {
     if (!isConnected) { toast.error('Please connect your wallet first'); return; }
-    setSelectedProject(project.id);
-    setModalOpen(true);
+    if (isMobile) {
+      // On mobile, toggle the funding form for this project
+      setSelectedProject(selectedProject === project.id ? null : project.id);
+    } else {
+      // On desktop, open modal
+      setSelectedProject(project.id);
+      setModalOpen(true);
+    }
   };
 
-  const handleConfirmFunding = async () => {
-    if (!fundingAmount || parseFloat(fundingAmount) < 0.01) { 
+  const handleConfirmFunding = async (projectId, amount) => {
+    const amountToUse = amount || fundingAmount;
+    if (!amountToUse || parseFloat(amountToUse) < 0.01) { 
       toast.error('Minimum contribution is 0.01 SUI'); 
       return; 
     }
     
-    const project = projects.find(p => p.id === selectedProject);
+    const project = projects.find(p => p.id === projectId);
     if (!project) return;
 
     try {
-      const amount = parseFloat(fundingAmount);
+      const fundAmount = parseFloat(amountToUse);
       
       // Create real transaction using DePINService
-      const tx = DePINService.createFundProjectTransaction(selectedProject, amount);
+      const tx = DePINService.createFundProjectTransaction(projectId, fundAmount);
       
       await executeTransaction(tx, {
         onSuccess: (digest) => {
           toast.success(`Successfully funded ${project.name}!`);
-          addNotification(`Funded ${project.name} with ${amount} SUI`, 'success');
+          addNotification(`Funded ${project.name} with ${fundAmount} SUI`, 'success');
           setFundingAmount('');
+          setFundingAmounts(prev => ({ ...prev, [projectId]: '' }));
           setSelectedProject(null);
           setModalOpen(false);
         },
@@ -133,7 +157,7 @@ const DePINFinance = () => {
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            <StatsCard title="TVL" value={`${totalFinanced.toFixed(4)} SUI`} description="Total value locked" icon={DollarSign} trend={15.2} />
+            <StatsCard title="TVL" value={`${totalTVL.toFixed(4)} SUI`} description="Lending + DePIN combined" icon={DollarSign} trend={15.2} />
             <StatsCard title="Active Projects" value={projects.length.toString()} description="Live infrastructure projects" icon={TrendingUp} trend={8.7} />
             <StatsCard title="Your Investment" value={`${totalUserInvestment.toFixed(4)} SUI`} description={`${userNFTCount} NFT${userNFTCount !== 1 ? 's' : ''} owned`} icon={Award} />
             <StatsCard title="Avg APY" value={`${projects.length > 0 ? (projects.reduce((sum, p) => sum + p.roi, 0) / projects.length).toFixed(1) : '0'}%`} description="Average project yield" icon={TrendingUp} trend={12} />
@@ -270,60 +294,121 @@ const DePINFinance = () => {
                           <Progress value={project.funding_progress} className="h-2" />
                           <div className="flex justify-between text-xs text-muted-foreground"><span>{project.funding_progress}% funded</span><span>{project.roi}% ROI</span></div>
                         </div>
-                        <Dialog open={modalOpen && selectedProject === project.id} onOpenChange={(open) => { setModalOpen(open); if (!open) { setSelectedProject(null); setFundingAmount(''); } }}>
-                          <DialogTrigger asChild>
-                            <Button onClick={() => handleFundClick(project)} disabled={!isConnected} className="w-full btn-mooncreditfi"><DollarSign className="h-4 w-4 mr-2" />Fund Now</Button>
-                          </DialogTrigger>
-                          <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-                            <DialogHeader className="space-y-2">
-                              <DialogTitle className="text-base sm:text-lg pr-6">Fund {project.name}</DialogTitle>
-                              <DialogDescription className="text-xs sm:text-sm">Enter the amount you'd like to contribute. You'll receive a Proof-of-Impact NFT upon successful funding.</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4">
-                              <div className="space-y-2">
-                                <label className="text-xs sm:text-sm font-medium">Funding Amount (SUI)</label>
-                                <Input 
-                                  type="number" 
-                                  placeholder="0.00" 
-                                  step="0.01" 
-                                  min="0" 
-                                  value={fundingAmount} 
-                                  onChange={(e) => setFundingAmount(e.target.value)} 
-                                  className="h-11 sm:h-12 text-base" 
-                                />
-                              </div>
-                              {fundingAmount && parseFloat(fundingAmount) > 0 && (
-                                <div className="p-3 sm:p-4 rounded-lg bg-muted/50 space-y-2">
-                                  <div className="flex justify-between text-xs sm:text-sm gap-2">
-                                    <span className="text-muted-foreground">Estimated Ownership:</span>
-                                    <span className="font-semibold text-primary">{((parseFloat(fundingAmount) / (parseFloat(project.funding_current) + parseFloat(fundingAmount))) * 100).toFixed(4)}%</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs sm:text-sm gap-2">
-                                    <span className="text-muted-foreground">Expected ROI:</span>
-                                    <span className="font-semibold text-green-500">{project.roi}%</span>
-                                  </div>
+                        {/* Mobile: Inline funding form */}
+                        {isMobile ? (
+                          <>
+                            <Button 
+                              onClick={() => handleFundClick(project)} 
+                              disabled={!isConnected} 
+                              className="w-full btn-mooncreditfi min-h-[48px]"
+                            >
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              {selectedProject === project.id ? 'Cancel' : 'Fund Now'}
+                            </Button>
+                            
+                            {selectedProject === project.id && (
+                              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border">
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium">Funding Amount (SUI)</label>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="0.00" 
+                                    step="0.01" 
+                                    min="0" 
+                                    value={fundingAmounts[project.id] || ''} 
+                                    onChange={(e) => setFundingAmounts(prev => ({ ...prev, [project.id]: e.target.value }))} 
+                                    className="h-12 text-base" 
+                                  />
                                 </div>
-                              )}
-                              <Button 
-                                onClick={handleConfirmFunding} 
-                                disabled={!fundingAmount || parseFloat(fundingAmount) <= 0 || isFunding} 
-                                className="w-full btn-mooncreditfi min-h-[48px] text-sm sm:text-base"
-                              >
-                                {isFunding ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Processing...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Shield className="h-4 w-4 mr-2" />
-                                    Confirm Funding
-                                  </>
+                                {fundingAmounts[project.id] && parseFloat(fundingAmounts[project.id]) > 0 && (
+                                  <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                                    <div className="flex justify-between text-xs gap-2">
+                                      <span className="text-muted-foreground">Estimated Ownership:</span>
+                                      <span className="font-semibold text-primary">{((parseFloat(fundingAmounts[project.id]) / (parseFloat(project.funding_current) + parseFloat(fundingAmounts[project.id]))) * 100).toFixed(4)}%</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs gap-2">
+                                      <span className="text-muted-foreground">Expected ROI:</span>
+                                      <span className="font-semibold text-green-500">{project.roi}%</span>
+                                    </div>
+                                  </div>
                                 )}
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                                <Button 
+                                  onClick={() => handleConfirmFunding(project.id, fundingAmounts[project.id])} 
+                                  disabled={!fundingAmounts[project.id] || parseFloat(fundingAmounts[project.id]) <= 0 || isFunding} 
+                                  className="w-full btn-mooncreditfi min-h-[48px]"
+                                >
+                                  {isFunding ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Processing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Shield className="h-4 w-4 mr-2" />
+                                      Confirm Funding
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          /* Desktop: Modal dialog */
+                          <Dialog open={modalOpen && selectedProject === project.id} onOpenChange={(open) => { setModalOpen(open); if (!open) { setSelectedProject(null); setFundingAmount(''); } }}>
+                            <DialogTrigger asChild>
+                              <Button onClick={() => handleFundClick(project)} disabled={!isConnected} className="w-full btn-mooncreditfi"><DollarSign className="h-4 w-4 mr-2" />Fund Now</Button>
+                            </DialogTrigger>
+                            <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+                              <DialogHeader className="space-y-2">
+                                <DialogTitle className="text-base sm:text-lg pr-6">Fund {project.name}</DialogTitle>
+                                <DialogDescription className="text-xs sm:text-sm">Enter the amount you'd like to contribute. You'll receive a Proof-of-Impact NFT upon successful funding.</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4">
+                                <div className="space-y-2">
+                                  <label className="text-xs sm:text-sm font-medium">Funding Amount (SUI)</label>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="0.00" 
+                                    step="0.01" 
+                                    min="0" 
+                                    value={fundingAmount} 
+                                    onChange={(e) => setFundingAmount(e.target.value)} 
+                                    className="h-11 sm:h-12 text-base" 
+                                  />
+                                </div>
+                                {fundingAmount && parseFloat(fundingAmount) > 0 && (
+                                  <div className="p-3 sm:p-4 rounded-lg bg-muted/50 space-y-2">
+                                    <div className="flex justify-between text-xs sm:text-sm gap-2">
+                                      <span className="text-muted-foreground">Estimated Ownership:</span>
+                                      <span className="font-semibold text-primary">{((parseFloat(fundingAmount) / (parseFloat(project.funding_current) + parseFloat(fundingAmount))) * 100).toFixed(4)}%</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs sm:text-sm gap-2">
+                                      <span className="text-muted-foreground">Expected ROI:</span>
+                                      <span className="font-semibold text-green-500">{project.roi}%</span>
+                                    </div>
+                                  </div>
+                                )}
+                                <Button 
+                                  onClick={() => handleConfirmFunding(project.id, fundingAmount)} 
+                                  disabled={!fundingAmount || parseFloat(fundingAmount) <= 0 || isFunding} 
+                                  className="w-full btn-mooncreditfi min-h-[48px] text-sm sm:text-base"
+                                >
+                                  {isFunding ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Processing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Shield className="h-4 w-4 mr-2" />
+                                      Confirm Funding
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        )}
                       </CardContent>
                     </Card>
                   );
