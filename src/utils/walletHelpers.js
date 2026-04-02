@@ -84,103 +84,160 @@ export const getWalletStoreUrl = (wallet = 'sui') => {
 };
 
 /**
- * Open wallet app with deep link, fallback to store if not installed
- * @param {string} walletType - 'sui', 'splash', or 'slush'
- * @returns {Promise<boolean>} - True if wallet opened, false if redirected to store
+ * Open wallet app with deep link and return URL for seamless connection
+ * MetaMask-style: Opens wallet, user approves, returns to dApp connected
+ * @param {string} walletType - 'sui', 'splash', 'slush', or 'suiet'
+ * @param {string} returnUrl - URL to return to after approval (optional)
+ * @returns {Promise<{opened: boolean, method: string}>}
  */
-export const openWallet = async (walletType = 'sui') => {
+export const openWalletWithReturn = async (walletType = 'sui', returnUrl = null) => {
+  const currentUrl = returnUrl || window.location.href;
+  const deepLink = generateWalletDeepLink(walletType);
+  
+  // Store connection attempt in sessionStorage for return detection
+  sessionStorage.setItem('wallet-connection-attempt', JSON.stringify({
+    wallet: walletType,
+    timestamp: Date.now(),
+    returnUrl: currentUrl,
+  }));
+  
   return new Promise((resolve) => {
-    // Generate deep link (just opens the wallet app)
-    const deepLink = generateWalletDeepLink(walletType);
-    
     let appOpened = false;
-    let redirectTimeout;
+    let method = 'unknown';
     
-    // Function to handle successful app opening
-    const handleAppOpened = () => {
+    const handleAppOpened = (detectionMethod) => {
       if (!appOpened) {
         appOpened = true;
-        clearTimeout(redirectTimeout);
-        resolve(true);
+        method = detectionMethod;
+        resolve({ opened: true, method });
       }
     };
     
-    // Listen for visibility change (app opened)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        handleAppOpened();
+    // Method 1: Try window.location (most reliable for iOS)
+    const attemptDirectNavigation = () => {
+      try {
+        window.location.href = deepLink;
+        handleAppOpened('direct-navigation');
+      } catch (e) {
+        console.log('Direct navigation failed:', e);
       }
     };
     
-    // Listen for blur event (app opened)
-    const handleBlur = () => {
-      handleAppOpened();
+    // Method 2: Hidden iframe (works on some Android devices)
+    const attemptIframe = () => {
+      try {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+        
+        iframe.src = deepLink;
+        
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        }, 1000);
+        
+        handleAppOpened('iframe');
+      } catch (e) {
+        console.log('Iframe method failed:', e);
+      }
     };
     
-    // Listen for pagehide event (app opened)
-    const handlePageHide = () => {
-      handleAppOpened();
+    // Method 3: Anchor tag click (fallback)
+    const attemptAnchorClick = () => {
+      try {
+        const link = document.createElement('a');
+        link.href = deepLink;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          if (link.parentNode) {
+            document.body.removeChild(link);
+          }
+        }, 100);
+        
+        handleAppOpened('anchor-click');
+      } catch (e) {
+        console.log('Anchor click failed:', e);
+      }
     };
     
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('pagehide', handlePageHide);
-    
-    // Try to open wallet app via hidden iframe (prevents navigation error)
-    try {
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = 'none';
-      document.body.appendChild(iframe);
-      
-      // Set iframe src to deep link
-      iframe.src = deepLink;
-      
-      // Clean up iframe after a short delay
+    // iOS prefers direct navigation
+    if (isIOS()) {
+      attemptDirectNavigation();
+    } else {
+      // Android: try iframe first, then direct navigation
+      attemptIframe();
       setTimeout(() => {
-        if (iframe.parentNode) {
-          document.body.removeChild(iframe);
+        if (!appOpened) {
+          attemptDirectNavigation();
         }
-      }, 1000);
-    } catch (e) {
-      console.log('Iframe method failed, trying direct link');
+      }, 100);
     }
     
-    // Fallback: try creating a link and clicking it
+    // Fallback to anchor click
     setTimeout(() => {
       if (!appOpened) {
-        try {
-          const link = document.createElement('a');
-          link.href = deepLink;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        } catch (e) {
-          console.log('Link click method failed');
-        }
+        attemptAnchorClick();
       }
-    }, 100);
+    }, 200);
     
-    // Set timeout to redirect to store if app doesn't open
-    redirectTimeout = setTimeout(() => {
+    // If wallet doesn't open, redirect to store
+    setTimeout(() => {
       if (!appOpened) {
-        // App didn't open, redirect to store
         const storeUrl = getWalletStoreUrl(walletType);
         window.location.href = storeUrl;
-        resolve(false);
+        resolve({ opened: false, method: 'store-redirect' });
       }
     }, 2500);
-    
-    // Cleanup listeners after 4 seconds
-    setTimeout(() => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('pagehide', handlePageHide);
-    }, 4000);
   });
+};
+
+/**
+ * Check if user is returning from wallet app after approval
+ * @returns {Object|null} Connection attempt data or null
+ */
+export const checkWalletReturn = () => {
+  try {
+    const attemptData = sessionStorage.getItem('wallet-connection-attempt');
+    if (attemptData) {
+      const data = JSON.parse(attemptData);
+      const timeSinceAttempt = Date.now() - data.timestamp;
+      
+      // If less than 5 minutes, consider it a valid return
+      if (timeSinceAttempt < 5 * 60 * 1000) {
+        return data;
+      }
+    }
+  } catch (e) {
+    console.error('Error checking wallet return:', e);
+  }
+  return null;
+};
+
+/**
+ * Clear wallet connection attempt data
+ */
+export const clearWalletReturn = () => {
+  try {
+    sessionStorage.removeItem('wallet-connection-attempt');
+  } catch (e) {
+    console.error('Error clearing wallet return:', e);
+  }
+};
+
+/**
+ * Legacy function for backward compatibility
+ */
+export const openWallet = async (walletType = 'sui') => {
+  const result = await openWalletWithReturn(walletType);
+  return result.opened;
 };
 
 /**

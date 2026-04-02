@@ -3,8 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Smartphone, ExternalLink, Copy, Check, Zap } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { isMobileDevice, isInWalletBrowser, openWallet } from '@/utils/walletHelpers';
+import { isMobileDevice, isInWalletBrowser, openWalletWithReturn } from '@/utils/walletHelpers';
 
+/**
+ * Mobile Wallet Guide - Now disabled by default
+ * MetaMask-style one-click connection is preferred
+ * This component is kept for fallback/troubleshooting
+ */
 const MobileWalletGuide = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -12,12 +17,13 @@ const MobileWalletGuide = () => {
   const currentUrl = window.location.href;
 
   useEffect(() => {
-    // Only show guide on mobile devices outside wallet browsers
-    if (isMobileDevice() && !isInWalletBrowser()) {
-      // Check if user has dismissed the guide before
+    // Disabled by default - MetaMask-style connection is now primary
+    // Only show if explicitly enabled via localStorage
+    const forceShow = localStorage.getItem('force-show-wallet-guide');
+    
+    if (forceShow === 'true' && isMobileDevice() && !isInWalletBrowser()) {
       const dismissed = localStorage.getItem('mobile-wallet-guide-dismissed');
       if (!dismissed) {
-        // Show guide after a short delay
         setTimeout(() => setShowGuide(true), 1000);
       }
     }
@@ -41,8 +47,7 @@ const MobileWalletGuide = () => {
   const handleQuickOpen = async () => {
     setIsOpening(true);
     try {
-      await openWallet('sui');
-      // User will be redirected or app will open
+      await openWalletWithReturn('sui');
       setTimeout(() => {
         setIsOpening(false);
         handleDismiss();
