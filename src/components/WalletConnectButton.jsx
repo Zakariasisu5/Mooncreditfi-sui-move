@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ConnectButton, useCurrentAccount, useConnectWallet, useWallets } from '@mysten/dapp-kit';
+import { ConnectButton, useCurrentAccount, useWallets } from '@mysten/dapp-kit';
 import { Button } from '@/components/ui/button';
 import { Wallet, Loader2 } from 'lucide-react';
 import { isMobileDevice, isInWalletBrowser } from '@/utils/walletHelpers';
 import MobileWalletSelector from './MobileWalletSelector';
-import { toast } from 'sonner';
 import '@mysten/dapp-kit/dist/index.css';
 import './WalletConnectButton.css';
 
@@ -13,10 +12,9 @@ import './WalletConnectButton.css';
  * Mobile: Shows wallet selector to open wallet app
  * Desktop: Standard extension popup
  */
-const WalletConnectButton = () => {
+const WalletConnectButton = ({ variant = 'default', size = 'default', className = '' }) => {
   const account = useCurrentAccount();
   const wallets = useWallets();
-  const { mutate: connect } = useConnectWallet();
   const [showMobileSelector, setShowMobileSelector] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   
@@ -40,11 +38,13 @@ const WalletConnectButton = () => {
 
   // On mobile outside wallet browser - show wallet selector
   if (mobile && !inWalletBrowser && !account) {
+    const isCTA = variant === 'cta';
     return (
       <>
         <Button
-          variant="outline"
-          className="wallet-connect-btn min-h-[44px]"
+          variant={isCTA ? 'default' : variant}
+          size={size}
+          className={`wallet-connect-btn min-h-[44px] ${isCTA ? 'btn-mooncreditfi text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto' : ''} ${className}`}
           onClick={() => setShowMobileSelector(true)}
           disabled={isConnecting}
         >
@@ -57,8 +57,7 @@ const WalletConnectButton = () => {
           ) : (
             <>
               <Wallet className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Connect Wallet</span>
-              <span className="sm:hidden">Connect</span>
+              <span>Connect Wallet</span>
             </>
           )}
         </Button>
@@ -76,7 +75,7 @@ const WalletConnectButton = () => {
   // Desktop or mobile in wallet browser - use standard ConnectButton
   // Always show ConnectButton for manual connection
   return (
-    <div className="wallet-connect-wrapper">
+    <div className={`wallet-connect-wrapper ${className}`}>
       <ConnectButton
         connectText={
           <span className="inline-flex items-center gap-2">
@@ -85,7 +84,7 @@ const WalletConnectButton = () => {
             <span className="sm:hidden">Connect</span>
           </span>
         }
-        className="wallet-connect-btn min-h-[44px]"
+        className={`wallet-connect-btn min-h-[44px] ${variant === 'cta' ? 'btn-mooncreditfi text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto' : ''}`}
       />
     </div>
   );

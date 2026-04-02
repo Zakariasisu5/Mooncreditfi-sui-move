@@ -1,13 +1,16 @@
 import { useNavigate } from 'react-router-dom';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Shield, TrendingUp, Zap, Users, CheckCircle, Lock, Globe, Coins, Sun, Wifi, Car, FileText, Github, ExternalLink, Award, Target, Rocket, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import WalletConnectButton from '@/components/WalletConnectButton';
 import heroImage from '@/assets/hero-defi.jpg';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const account = useCurrentAccount();
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -78,14 +81,7 @@ const Landing = () => {
             <span className="font-bold text-sm sm:text-base">MoonCreditFi</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm" 
-              className="btn-mooncreditfi text-xs sm:text-sm px-3 sm:px-4"
-              onClick={() => navigate('/dashboard')}
-            >
-              Launch App
-              <ArrowRight className="ml-1 h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
+            <WalletConnectButton />
           </div>
         </div>
       </nav>
@@ -139,14 +135,20 @@ const Landing = () => {
                 variants={itemVariants}
                 className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2"
               >
-                <Button 
-                  size="lg" 
-                  className="btn-mooncreditfi text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto" 
-                  onClick={() => navigate('/dashboard')}
-                >
-                  Launch App
-                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
+                {account ? (
+                  <Button 
+                    size="lg" 
+                    className="btn-mooncreditfi text-base sm:text-lg px-6 sm:px-8 h-12 sm:h-14 w-full sm:w-auto" 
+                    onClick={() => navigate('/dashboard')}
+                  >
+                    Launch App
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                ) : (
+                  <div className="w-full sm:w-auto">
+                    <WalletConnectButton variant="cta" size="lg" />
+                  </div>
+                )}
                 <Button 
                   size="lg" 
                   variant="outline"
@@ -564,14 +566,18 @@ const Landing = () => {
                 Powered by Sui
               </p>
               <div className="flex justify-center">
-                <Button 
-                  size="lg" 
-                  className="btn-mooncreditfi text-base sm:text-lg px-8 sm:px-10 h-12 sm:h-14"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  Launch App
-                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
+                {account ? (
+                  <Button 
+                    size="lg" 
+                    className="btn-mooncreditfi text-base sm:text-lg px-8 sm:px-10 h-12 sm:h-14"
+                    onClick={() => navigate('/dashboard')}
+                  >
+                    Launch App
+                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                ) : (
+                  <WalletConnectButton variant="cta" size="lg" />
+                )}
               </div>
             </div>
           </motion.div>

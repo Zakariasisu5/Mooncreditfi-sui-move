@@ -13,6 +13,7 @@ import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import MobileWalletGuide from "./components/MobileWalletGuide";
 import WalletConnectionStatus from "./components/WalletConnectionStatus";
+import WalletProtectedRoute from "./components/WalletProtectedRoute";
 import Landing from "./pages/Landing";
 import About from "./pages/About";
 import Terms from "./pages/Terms";
@@ -52,37 +53,42 @@ const App = () => {
               <Toaster />
               <HashRouter>
                 <Routes>
+                  {/* Public routes - no wallet required */}
                   <Route path="/" element={<Landing />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/whitepaper" element={<Whitepaper />} />
+                  
+                  {/* Protected routes - wallet required */}
                   <Route
                     path="/*"
                     element={
-                      <div className="min-h-screen bg-background">
-                        {sidebarOpen && (
-                          <div
-                            className="fixed inset-0 bg-black/40 z-40 md:hidden"
-                            onClick={() => setSidebarOpen(false)}
-                            aria-hidden="true"
-                          />
-                        )}
+                      <WalletProtectedRoute>
+                        <div className="min-h-screen bg-background">
+                          {sidebarOpen && (
+                            <div
+                              className="fixed inset-0 bg-black/40 z-40 md:hidden"
+                              onClick={() => setSidebarOpen(false)}
+                              aria-hidden="true"
+                            />
+                          )}
 
-                        <Navbar onToggleSidebar={() => setSidebarOpen((s) => !s)} />
-                        <div className="flex">
-                          <Sidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-                          <main className="flex-1 p-4 md:p-8">
-                            <Routes>
-                              {routes.map(({ to, page: Page }) => (
-                                <Route key={to} path={to} element={<Page />} />
-                              ))}
-                              <Route path="depin" element={<DePINFundingComponent />} />
-                            </Routes>
-                          </main>
+                          <Navbar onToggleSidebar={() => setSidebarOpen((s) => !s)} />
+                          <div className="flex">
+                            <Sidebar sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                            <main className="flex-1 p-4 md:p-8">
+                              <Routes>
+                                {routes.map(({ to, page: Page }) => (
+                                  <Route key={to} path={to} element={<Page />} />
+                                ))}
+                                <Route path="depin" element={<DePINFundingComponent />} />
+                              </Routes>
+                            </main>
+                          </div>
                         </div>
-                      </div>
+                      </WalletProtectedRoute>
                     }
                   />
                 </Routes>
