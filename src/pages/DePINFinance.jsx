@@ -274,23 +274,23 @@ const DePINFinance = () => {
                           <DialogTrigger asChild>
                             <Button onClick={() => handleFundClick(project)} disabled={!isConnected} className="w-full btn-mooncreditfi"><DollarSign className="h-4 w-4 mr-2" />Fund Now</Button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
+                          <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
-                              <DialogTitle>Fund {project.name}</DialogTitle>
-                              <DialogDescription>Enter the amount you'd like to contribute. You'll receive a Proof-of-Impact NFT upon successful funding.</DialogDescription>
+                              <DialogTitle className="text-base sm:text-lg">Fund {project.name}</DialogTitle>
+                              <DialogDescription className="text-xs sm:text-sm">Enter the amount you'd like to contribute. You'll receive a Proof-of-Impact NFT upon successful funding.</DialogDescription>
                             </DialogHeader>
-                            <div className="space-y-4 py-4">
+                            <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
                               <div className="space-y-2">
-                                <label className="text-sm font-medium">Funding Amount (SUI)</label>
-                                <Input type="number" placeholder="0.00" step="0.01" min="0" value={fundingAmount} onChange={(e) => setFundingAmount(e.target.value)} />
+                                <label className="text-xs sm:text-sm font-medium">Funding Amount (SUI)</label>
+                                <Input type="number" placeholder="0.00" step="0.01" min="0" value={fundingAmount} onChange={(e) => setFundingAmount(e.target.value)} className="h-10 sm:h-11 text-sm sm:text-base" />
                               </div>
                               {fundingAmount && parseFloat(fundingAmount) > 0 && (
-                                <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-                                  <div className="flex justify-between text-sm"><span className="text-muted-foreground">Estimated Ownership:</span><span className="font-semibold text-primary">{((parseFloat(fundingAmount) / (parseFloat(project.funding_current) + parseFloat(fundingAmount))) * 100).toFixed(4)}%</span></div>
-                                  <div className="flex justify-between text-sm"><span className="text-muted-foreground">Expected ROI:</span><span className="font-semibold text-green-500">{project.roi}%</span></div>
+                                <div className="p-3 sm:p-4 rounded-lg bg-muted/50 space-y-2">
+                                  <div className="flex justify-between text-xs sm:text-sm"><span className="text-muted-foreground">Estimated Ownership:</span><span className="font-semibold text-primary">{((parseFloat(fundingAmount) / (parseFloat(project.funding_current) + parseFloat(fundingAmount))) * 100).toFixed(4)}%</span></div>
+                                  <div className="flex justify-between text-xs sm:text-sm"><span className="text-muted-foreground">Expected ROI:</span><span className="font-semibold text-green-500">{project.roi}%</span></div>
                                 </div>
                               )}
-                              <Button onClick={handleConfirmFunding} disabled={!fundingAmount || parseFloat(fundingAmount) <= 0 || isFunding} className="w-full btn-mooncreditfi">
+                              <Button onClick={handleConfirmFunding} disabled={!fundingAmount || parseFloat(fundingAmount) <= 0 || isFunding} className="w-full btn-mooncreditfi min-h-[44px] text-sm sm:text-base">
                                 {isFunding ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</> : <><Shield className="h-4 w-4 mr-2" />Confirm Funding</>}
                               </Button>
                             </div>
