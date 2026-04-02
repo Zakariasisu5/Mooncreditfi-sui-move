@@ -1,3 +1,4 @@
+import { SUPPORTED_WALLETS } from '@/config/wallets';
 
 /**
  * Detect if user is on a mobile device
@@ -30,14 +31,14 @@ export const isInWalletBrowser = () => {
   if (typeof window === 'undefined') return false;
   
   // Check user agent for wallet browsers
-  const walletUserAgents = /SuietWallet|SuiWallet|EthosWallet|Suiet|Slash/i.test(navigator.userAgent);
+  const walletUserAgents = /SuietWallet|SuiWallet|EthosWallet|Suiet|Splash|Slush/i.test(navigator.userAgent);
   
-  // Check for wallet APIs
+  // Check for wallet APIs (with proper type checking)
   const hasWalletAPI = !!(
-    window.suiet || 
-    window.suiWallet || 
-    window.ethereum?.isSuiet ||
-    window.ethereum?.isSlash
+    (typeof window !== 'undefined' && 'suiet' in window) ||
+    (typeof window !== 'undefined' && 'suiWallet' in window) ||
+    (typeof window !== 'undefined' && window.ethereum && 'isSuiet' in window.ethereum) ||
+    (typeof window !== 'undefined' && window.ethereum && 'isSplash' in window.ethereum)
   );
   
   return walletUserAgents || hasWalletAPI;
@@ -51,65 +52,35 @@ export const getAvailableWallets = () => {
   
   const wallets = [];
   
-  if (window.suiet) wallets.push('Suiet');
-  if (window.suiWallet) wallets.push('Sui Wallet');
-  if (window.ethereum?.isSuiet) wallets.push('Suiet (Ethereum)');
-  if (window.ethereum?.isSlash) wallets.push('Slash');
+  if ('suiet' in window) wallets.push('Suiet');
+  if ('suiWallet' in window) wallets.push('Sui Wallet');
+  if (window.ethereum && 'isSuiet' in window.ethereum) wallets.push('Suiet (Ethereum)');
+  if (window.ethereum && 'isSplash' in window.ethereum) wallets.push('Splash');
   
   return wallets;
 };
 
 /**
- * Wallet app store URLs
+ * Generate deep link for wallet
  */
-const WALLET_STORES = {
-  sui: {
-    ios: 'https://apps.apple.com/app/sui-wallet/id6476628026',
-    android: 'https://play.google.com/store/apps/details?id=com.mystenlabs.suiwallet',
-    web: 'https://sui.io/wallet',
-  },
-  splash: {
-    ios: 'https://apps.apple.com/app/splash-wallet/id6478960549',
-    android: 'https://play.google.com/store/apps/details?id=io.cosmostation.splash',
-    web: 'https://splash.im/',
-  },
-  slush: {
-    ios: 'https://apps.apple.com/app/slush-wallet/id6478960549',
-    android: 'https://play.google.com/store/apps/details?id=com.slush.wallet',
-    web: 'https://slush.app/',
-  },
-};
-
-
 export const generateWalletDeepLink = (wallet = 'sui') => {
-  switch (wallet.toLowerCase()) {
-    case 'sui':
-      return 'sui://';
-    case 'splash':
-      return 'splash://';
-    case 'slush':
-      return 'slush://';
-    case 'ethos':
-      return 'ethos://';
-    default:
-      return 'sui://';
-  }
+  const walletConfig = SUPPORTED_WALLETS[wallet.toLowerCase()];
+  return walletConfig?.deepLink || 'sui://';
 };
 
 /**
  * Get app store URL for wallet installation
- * @param {string} wallet - Wallet name ('sui', 'splash', 'slush')
+ * @param {string} wallet - Wallet name ('sui', 'splash', 'slush', 'suiet')
  */
 export const getWalletStoreUrl = (wallet = 'sui') => {
-  const walletKey = wallet.toLowerCase();
-  const storeInfo = WALLET_STORES[walletKey] || WALLET_STORES.sui;
+  const walletConfig = SUPPORTED_WALLETS[wallet.toLowerCase()] || SUPPORTED_WALLETS.sui;
   
   if (isIOS()) {
-    return storeInfo.ios;
+    return walletConfig.downloadUrls.ios;
   } else if (isAndroid()) {
-    return storeInfo.android;
+    return walletConfig.downloadUrls.android;
   }
-  return storeInfo.web;
+  return walletConfig.downloadUrls.web;
 };
 
 /**

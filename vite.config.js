@@ -20,4 +20,16 @@ export default defineConfig(({ mode }) => ({
       "lib": resolve(__dirname, "lib"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
+  // Ensure proper handling of SPA routing
+  preview: {
+    port: 8080,
+    strictPort: true,
+  },
 }));

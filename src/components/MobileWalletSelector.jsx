@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Wallet, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
 import { openWallet, isIOS, isAndroid, getWalletStoreUrl } from '@/utils/walletHelpers';
+import { SUPPORTED_WALLETS } from '@/config/wallets';
 
 /**
  * Mobile wallet selector with deep linking
@@ -55,31 +56,14 @@ const MobileWalletSelector = ({ onClose, onSuccess }) => {
     window.open(storeUrl, '_blank');
   };
 
-  const wallets = [
-    {
-      id: 'sui',
-      name: 'Sui Wallet',
-      description: 'Official Sui wallet',
-      icon: '💎',
-      recommended: true,
-    },
-    {
-      id: 'splash',
-      name: 'Splash',
-      description: 'Multi-chain wallet',
-      icon: '🌊',
-      recommended: false,
-    },
-    {
-      id: 'slush',
-      name: 'Slush',
-      description: 'Fast and secure',
-      icon: '💧',
-      recommended: false,
-    },
-  ];
+  // Get wallets from configuration
+  const wallets = Object.values(SUPPORTED_WALLETS).filter(w => 
+    ['sui', 'splash', 'slush'].includes(w.id)
+  );
 
   if (showManualSteps) {
+    const walletConfig = SUPPORTED_WALLETS[selectedWallet] || SUPPORTED_WALLETS.sui;
+    
     return (
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <Card className="w-full max-w-md animate-in slide-in-from-bottom duration-300">
@@ -101,7 +85,7 @@ const MobileWalletSelector = ({ onClose, onSuccess }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Your {selectedWallet} wallet should now be open. Follow these steps to connect:
+              Your {walletConfig.displayName} wallet should now be open. Follow these steps to connect:
             </p>
 
             <div className="space-y-3">
@@ -183,7 +167,9 @@ const MobileWalletSelector = ({ onClose, onSuccess }) => {
             <div className="py-8 text-center space-y-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
               <div>
-                <p className="font-semibold text-lg">Opening {selectedWallet}...</p>
+                <p className="font-semibold text-lg">
+                  Opening {SUPPORTED_WALLETS[selectedWallet]?.displayName || selectedWallet}...
+                </p>
                 <p className="text-sm text-muted-foreground mt-2">
                   {isIOS() || isAndroid() 
                     ? 'If the app doesn\'t open, you\'ll be redirected to install it.'
@@ -209,7 +195,7 @@ const MobileWalletSelector = ({ onClose, onSuccess }) => {
                         <span className="text-3xl">{wallet.icon}</span>
                         <div className="flex-1 text-left">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold">{wallet.name}</span>
+                            <span className="font-semibold">{wallet.displayName}</span>
                             {wallet.recommended && (
                               <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
                                 Recommended
@@ -229,7 +215,7 @@ const MobileWalletSelector = ({ onClose, onSuccess }) => {
                       className="w-full text-xs"
                       onClick={() => handleInstallWallet(wallet.id)}
                     >
-                      Don't have {wallet.name}? Install it
+                      Don't have {wallet.displayName}? Install it
                     </Button>
                   </div>
                 ))}

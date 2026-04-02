@@ -3,7 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { SuiClientProvider, WalletProvider as SuiWalletProvider } from '@mysten/dapp-kit';
+import { SuiClientProvider, WalletProvider as SuiWalletProvider, createNetworkConfig } from '@mysten/dapp-kit';
 import '@mysten/dapp-kit/dist/index.css';
 import { networkConfig, ACTIVE_NETWORK } from './config/sui';
 import { WalletProvider } from "./contexts/WalletContext";
@@ -21,7 +21,14 @@ import Contact from "./pages/Contact";
 import Whitepaper from "./pages/Whitepaper";
 import DePINFundingComponent from "./components/DePINFundingComponent";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -30,11 +37,12 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork={ACTIVE_NETWORK}>
         <SuiWalletProvider 
-          autoConnect
-          preferredWallets={['Suiet', 'Sui Wallet', 'Ethos Wallet', 'Suiet Wallet']}
+          autoConnect={false}
+          preferredWallets={['Sui Wallet', 'Suiet Wallet']}
           enableUnsafeBurner={false}
-          features={['sui:signAndExecuteTransactionBlock']}
           storageAdapter={typeof window !== 'undefined' ? window.localStorage : undefined}
+          storage={typeof window !== 'undefined' ? window.localStorage : undefined}
+          storageKey="sui-wallet-connection"
         >
           <NotificationProvider>
             <WalletProvider>
