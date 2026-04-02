@@ -31,17 +31,29 @@ export const isInWalletBrowser = () => {
   if (typeof window === 'undefined') return false;
   
   // Check user agent for wallet browsers
-  const walletUserAgents = /SuietWallet|SuiWallet|EthosWallet|Suiet|Splash|Slush/i.test(navigator.userAgent);
+  const walletUserAgents = /SuiWallet|EthosWallet|Splash|Slush/i.test(navigator.userAgent);
   
   // Check for wallet APIs (with proper type checking)
   const hasWalletAPI = !!(
-    (typeof window !== 'undefined' && 'suiet' in window) ||
     (typeof window !== 'undefined' && 'suiWallet' in window) ||
-    (typeof window !== 'undefined' && window.ethereum && 'isSuiet' in window.ethereum) ||
-    (typeof window !== 'undefined' && window.ethereum && 'isSplash' in window.ethereum)
+    (typeof window !== 'undefined' && window.ethereum && 'isSplash' in window.ethereum) ||
+    (typeof window !== 'undefined' && window.ethereum && 'isSlush' in window.ethereum)
   );
   
-  return walletUserAgents || hasWalletAPI;
+  // Also check if we're in a mobile webview
+  const isWebView = /wv|WebView/i.test(navigator.userAgent);
+  
+  const result = walletUserAgents || hasWalletAPI || (isMobileDevice() && isWebView);
+  
+  console.log('Wallet Browser Detection:', {
+    walletUserAgents,
+    hasWalletAPI,
+    isWebView,
+    result,
+    userAgent: navigator.userAgent
+  });
+  
+  return result;
 };
 
 /**

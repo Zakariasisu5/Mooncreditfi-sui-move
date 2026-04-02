@@ -23,25 +23,44 @@ const WalletConnectButton = () => {
   const mobile = isMobileDevice();
   const inWalletBrowser = isInWalletBrowser();
 
-  // Auto-connect if in wallet browser
+  // Debug logging
+  useEffect(() => {
+    console.log('Wallet Connection Debug:', {
+      mobile,
+      inWalletBrowser,
+      account: !!account,
+      walletsCount: wallets.length,
+      walletNames: wallets.map(w => w.name),
+      userAgent: navigator.userAgent
+    });
+  }, [mobile, inWalletBrowser, account, wallets]);
+
+  // Auto-connect if in wallet browser - try all available wallets
   useEffect(() => {
     if (mobile && inWalletBrowser && !account && wallets.length > 0 && !isConnecting) {
+      console.log('Attempting auto-connect in wallet browser...');
+      
+      // Try to find any Sui wallet
       const suiWallet = wallets.find(w => 
-        w.name.toLowerCase().includes('sui wallet')
-      );
+        w.name.toLowerCase().includes('sui')
+      ) || wallets[0]; // Fallback to first wallet
       
       if (suiWallet) {
+        console.log('Auto-connecting to:', suiWallet.name);
         setIsConnecting(true);
+        
         connect(
           { wallet: suiWallet },
           {
             onSuccess: () => {
+              console.log('Auto-connect successful!');
               setIsConnecting(false);
               toast.success('Wallet connected successfully!');
             },
             onError: (error) => {
-              setIsConnecting(false);
               console.error('Auto-connect failed:', error);
+              setIsConnecting(false);
+              toast.error('Auto-connect failed. Please connect manually.');
             },
           }
         );
@@ -85,6 +104,7 @@ const WalletConnectButton = () => {
   }
 
   // Desktop or mobile in wallet browser - use standard ConnectButton
+  // Force show even if auto-connect fails
   return (
     <div className="wallet-connect-wrapper">
       <ConnectButton
