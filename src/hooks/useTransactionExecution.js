@@ -113,17 +113,33 @@ export const useTransactionExecution = () => {
                 toast.error('Gas estimation failed', {
                   description: 'Unable to estimate gas for this transaction',
                 });
-              } else if (msg.includes('wallet-rpc') || msg.includes('Failed to fetch')) {
-                toast.error('Wallet Connection Error', {
-                  description: 'Please disconnect and reconnect your wallet. See console for details.',
-                  duration: 6000,
+              } else if (msg.includes('503') || msg.includes('Service Unavailable')) {
+                toast.error('Network Temporarily Unavailable', {
+                  description: 'Sui testnet RPC is down. Please try again in a few minutes.',
+                  duration: 8000,
                 });
-                console.error('🔴 WALLET RPC ERROR - Follow these steps:');
-                console.error('1. Open Sui Wallet → Settings → Connected Sites');
-                console.error('2. Disconnect this site');
-                console.error('3. Clear browser cache (Ctrl+Shift+Delete)');
-                console.error('4. Refresh page and reconnect wallet');
-                console.error('5. When connecting, click "Proceed anyway" on security warning');
+                console.error('🔴 RPC 503 ERROR - Sui Testnet is temporarily unavailable');
+                console.error('Solutions:');
+                console.error('1. Wait 2-3 minutes and try again');
+                console.error('2. Check Sui status: https://status.sui.io/');
+                console.error('3. Try again during off-peak hours');
+              } else if (msg.includes('wallet-rpc') || msg.includes('Failed to fetch')) {
+                toast.error('Wallet RPC Error', {
+                  description: 'Your wallet is using a deprecated RPC endpoint. Try updating your wallet app or switching networks.',
+                  duration: 8000,
+                });
+                console.error('🔴 WALLET RPC ERROR - wallet-rpc.testnet.sui.io is deprecated');
+                console.error('');
+                console.error('SOLUTIONS:');
+                console.error('1. Update your Sui Wallet app to the latest version');
+                console.error('2. Try disconnecting and reconnecting your wallet');
+                console.error('3. In wallet settings, try switching to a different RPC endpoint');
+                console.error('4. If using Sui Wallet, go to Settings → Network → Try "Testnet" or custom RPC');
+                console.error('5. Alternative: Use a different wallet (Splash, Slush)');
+                console.error('');
+                console.error('The deprecated endpoint wallet-rpc.testnet.sui.io returns 404');
+                console.error('Your wallet needs to use: fullnode.testnet.sui.io or rpc-testnet.suiscan.xyz');
+                console.error('');
                 console.error('Full error:', txError);
               } else if (msg.includes('verify') || msg.includes('security')) {
                 toast.error('Security Validation Error', {

@@ -23,8 +23,8 @@ export const useLendingPool = (options = {}) => {
   return useQuery({
     queryKey: ['lendingPool'],
     queryFn: () => LendingPoolDataService.fetchPoolData(),
-    refetchInterval: 10000, // Refetch every 10 seconds
-    staleTime: 5000, // Consider data stale after 5 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds (reduced from 10s)
+    staleTime: 20000, // Consider data stale after 20 seconds
     ...options,
   });
 };
@@ -42,8 +42,8 @@ export const useCreditProfile = (options = {}) => {
     queryKey: ['creditProfile', userAddress],
     queryFn: () => CreditProfileDataService.fetchCreditProfile(userAddress),
     enabled: !!userAddress, // Only fetch if user is connected
-    refetchInterval: 15000, // Refetch every 15 seconds
-    staleTime: 10000,
+    refetchInterval: 45000, // Refetch every 45 seconds (reduced from 15s)
+    staleTime: 30000,
     ...options,
   });
 };
@@ -61,8 +61,8 @@ export const useUserBalance = (options = {}) => {
     queryKey: ['userBalance', userAddress],
     queryFn: () => BalanceService.fetchSuiBalance(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 10000,
-    staleTime: 5000,
+    refetchInterval: 30000, // Refetch every 30 seconds (reduced from 10s)
+    staleTime: 20000,
     ...options,
   });
 };
@@ -84,8 +84,8 @@ export const useUserDeposits = (options = {}) => {
     queryKey: ['userDeposits', userAddress, poolAPY],
     queryFn: () => UserDepositService.fetchUserDeposits(userAddress, poolAPY),
     enabled: !!userAddress,
-    refetchInterval: 15000,
-    staleTime: 10000,
+    refetchInterval: 45000, // Refetch every 45 seconds (reduced from 15s)
+    staleTime: 30000,
     ...options,
   });
 };
@@ -137,8 +137,8 @@ export const useDePINProjects = (projectIds = [], options = {}) => {
     queryKey: ['depinProjects', projectIds],
     queryFn: () => DePINDataService.fetchMultipleProjects(projectIds),
     enabled: projectIds.length > 0,
-    refetchInterval: 20000,
-    staleTime: 15000,
+    refetchInterval: 60000, // Refetch every 60 seconds (reduced from 20s)
+    staleTime: 45000,
     ...options,
   });
 };

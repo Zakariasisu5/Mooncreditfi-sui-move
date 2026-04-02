@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, DollarSign, Users, Wallet, CreditCard, TrendingDown } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, Wallet, CreditCard, TrendingDown, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsCard from '@/components/StatsCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useWalletContext } from '@/contexts/WalletContext';
-import { useLendingData, useMaxBorrowLimit, useUserDeposits, useDePINProjects } from '@/hooks/useContractData';
+import { useLendingData, useMaxBorrowLimit, useUserDeposits, useDePINProjects, useInvalidateQueries } from '@/hooks/useContractData';
 import { DEPIN_PROJECTS } from '@/config/sui';
 import { motion } from 'framer-motion';
 
@@ -25,7 +28,9 @@ const Index = () => {
   const { pool, profile, balance, isLoading } = useLendingData();
   const { creditScore, maxBorrowLimit } = useMaxBorrowLimit();
   const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
-  const { data: depinProjects } = useDePINProjects(DEPIN_PROJECTS);
+  const { data: depinProjects, isLoading: isLoadingDePIN } = useDePINProjects(DEPIN_PROJECTS);
+  const { invalidateAll } = useInvalidateQueries();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Real on-chain data
   const depositedBalance = userDeposits?.netDeposited || 0;
@@ -33,10 +38,18 @@ const Index = () => {
   const activeLoanAmount = profile?.debt || 0;
   const totalDeposited = pool?.totalDeposited || 0;
   const currentAPY = pool?.interestRate || 5.0;
+  const utilizationRate = pool?.utilizationRate || 0;
   
   // Calculate combined TVL (Lending + DePIN)
   const depinTVL = depinProjects?.reduce((sum, project) => sum + project.currentAmount, 0) || 0;
   const totalTVL = totalDeposited + depinTVL;
+
+  // Handle manual refresh
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await invalidateAll();
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -57,37 +70,89 @@ const Index = () => {
     >
       {/* Dashboard Overview Cards */}
       <motion.div variants={itemVariants}>
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4">Dashboard Overview</h2>
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Dashboard Overview</h2>
+            <Badge variant="outline" className="text-xs">
+              Real-time
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="h-8"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          <StatsCard
-            title="Deposited Balance"
-            value={isConnected ? `${parseFloat(depositedBalance).toFixed(4)} SUI` : 'Not Connected'}
-            description="Your lending position"
-            icon={Wallet}
-            className="card-glow"
-          />
-          <StatsCard
-            title="Active Loan"
-            value={isConnected ? `${parseFloat(activeLoanAmount).toFixed(4)} SUI` : 'Not Connected'}
-            description="Current borrowed amount"
-            icon={TrendingDown}
-            className="card-glow"
-          />
-          <StatsCard
-            title="Credit Score"
-            value={isConnected ? creditScore : 'Not Connected'}
-            description="Your on-chain credit rating"
-            icon={CreditCard}
-            className="card-glow"
-          />
-          <StatsCard
-            title="Yield Earned"
-            value={isConnected ? `${parseFloat(yieldEarned).toFixed(6)} SUI` : 'Not Connected'}
-            description="Total earnings from lending"
-            icon={TrendingUp}
-            trend={parseFloat(yieldEarned) > 0 ? currentAPY : 0}
-            className="card-glow"
-          />
+          {isLoadingDeposits ? (
+            <Card className="card-glow">
+              <CardContent className="p-3 sm:p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ) : (
+            <StatsCard
+              title="Deposited Balance"
+              value={isConnected ? `${parseFloat(depositedBalance).toFixed(4)} SUI` : 'Not Connected'}
+              description={isConnected && userDeposits?.depositCount > 0 ? `${userDeposits.depositCount} deposit${userDeposits.depositCount > 1 ? 's' : ''}` : 'Your lending position'}
+              icon={Wallet}
+              className="card-glow"
+            />
+          )}
+          {isLoading ? (
+            <Card className="card-glow">
+              <CardContent className="p-3 sm:p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ) : (
+            <StatsCard
+              title="Active Loan"
+              value={isConnected ? `${parseFloat(activeLoanAmount).toFixed(4)} SUI` : 'Not Connected'}
+              description={isConnected && profile ? `Max: ${maxBorrowLimit} SUI` : 'Current borrowed amount'}
+              icon={TrendingDown}
+              className="card-glow"
+            />
+          )}
+          {isLoading ? (
+            <Card className="card-glow">
+              <CardContent className="p-3 sm:p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ) : (
+            <StatsCard
+              title="Credit Score"
+              value={isConnected ? creditScore : 'Not Connected'}
+              description={isConnected && profile ? `${profile.loanCount} loan${profile.loanCount !== 1 ? 's' : ''}` : 'Your on-chain credit rating'}
+              icon={CreditCard}
+              className="card-glow"
+            />
+          )}
+          {isLoadingDeposits ? (
+            <Card className="card-glow">
+              <CardContent className="p-3 sm:p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ) : (
+            <StatsCard
+              title="Yield Earned"
+              value={isConnected ? `${parseFloat(yieldEarned).toFixed(6)} SUI` : 'Not Connected'}
+              description={isConnected && yieldEarned > 0 ? `${currentAPY.toFixed(1)}% APY` : 'Total earnings from lending'}
+              icon={TrendingUp}
+              trend={parseFloat(yieldEarned) > 0 ? currentAPY : 0}
+              className="card-glow"
+            />
+          )}
         </div>
       </motion.div>
 
@@ -95,19 +160,37 @@ const Index = () => {
       <motion.div variants={itemVariants}>
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4">Protocol Stats</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          <StatsCard
-            title="TVL"
-            value={`${parseFloat(totalTVL).toFixed(2)} SUI`}
-            description="Lending + DePIN combined"
-            icon={DollarSign}
-            trend={12.5}
-          />
-          <StatsCard
-            title="Current APY"
-            value={`${currentAPY.toFixed(1)}%`}
-            description="Lending yield rate"
-            icon={TrendingUp}
-          />
+          {isLoading || isLoadingDePIN ? (
+            <Card className="card-glow">
+              <CardContent className="p-3 sm:p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ) : (
+            <StatsCard
+              title="TVL"
+              value={`${parseFloat(totalTVL).toFixed(2)} SUI`}
+              description={`Lending: ${totalDeposited.toFixed(2)} + DePIN: ${depinTVL.toFixed(2)}`}
+              icon={DollarSign}
+              trend={12.5}
+            />
+          )}
+          {isLoading ? (
+            <Card className="card-glow">
+              <CardContent className="p-3 sm:p-6">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-32" />
+              </CardContent>
+            </Card>
+          ) : (
+            <StatsCard
+              title="Current APY"
+              value={`${currentAPY.toFixed(1)}%`}
+              description={`Utilization: ${utilizationRate.toFixed(1)}%`}
+              icon={TrendingUp}
+            />
+          )}
           <StatsCard
             title="Active Users"
             value="Live"

@@ -1,10 +1,14 @@
 import { createNetworkConfig } from '@mysten/dapp-kit';
 
+// Use RPC endpoint with full indexing support
+// Suiet RPC has CORS enabled and supports all indexing features
+const TESTNET_RPC = import.meta.env.VITE_SUI_RPC_URL || 'https://rpc-testnet.suiscan.xyz:443';
+
 const { networkConfig, useNetworkVariable } = createNetworkConfig({
   testnet: { 
-    url: 'https://fullnode.testnet.sui.io:443',
+    url: TESTNET_RPC,
     variables: {
-      rpcUrl: 'https://fullnode.testnet.sui.io:443'
+      rpcUrl: TESTNET_RPC
     }
   },
   mainnet: { 

@@ -441,21 +441,33 @@ export const UserDepositService = {
     try {
       const suiClient = getSuiClient();
       
-      // Query deposit events
-      const depositEvents = await suiClient.queryEvents({
-        query: {
-          MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::DepositEvent`,
-        },
-        limit: 1000,
-      });
+      // Query deposit events with error handling
+      let depositEvents = { data: [] };
+      try {
+        depositEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::DepositEvent`,
+          },
+          limit: 1000,
+        });
+      } catch (eventError) {
+        // Gracefully handle missing events or transaction digest errors
+        console.warn('Could not fetch deposit events:', eventError.message);
+      }
 
-      // Query withdraw events
-      const withdrawEvents = await suiClient.queryEvents({
-        query: {
-          MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::WithdrawEvent`,
-        },
-        limit: 1000,
-      });
+      // Query withdraw events with error handling
+      let withdrawEvents = { data: [] };
+      try {
+        withdrawEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::WithdrawEvent`,
+          },
+          limit: 1000,
+        });
+      } catch (eventError) {
+        // Gracefully handle missing events or transaction digest errors
+        console.warn('Could not fetch withdraw events:', eventError.message);
+      }
 
       // Calculate user's deposits
       let totalDeposited = 0;
@@ -547,21 +559,33 @@ export const UserLoanService = {
     try {
       const suiClient = getSuiClient();
       
-      // Query borrow events
-      const borrowEvents = await suiClient.queryEvents({
-        query: {
-          MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::BorrowEvent`,
-        },
-        limit: 1000,
-      });
+      // Query borrow events with error handling
+      let borrowEvents = { data: [] };
+      try {
+        borrowEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::BorrowEvent`,
+          },
+          limit: 1000,
+        });
+      } catch (eventError) {
+        // Gracefully handle missing events or transaction digest errors
+        console.warn('Could not fetch borrow events:', eventError.message);
+      }
 
-      // Query repay events
-      const repayEvents = await suiClient.queryEvents({
-        query: {
-          MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::RepayEvent`,
-        },
-        limit: 1000,
-      });
+      // Query repay events with error handling
+      let repayEvents = { data: [] };
+      try {
+        repayEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::RepayEvent`,
+          },
+          limit: 1000,
+        });
+      } catch (eventError) {
+        // Gracefully handle missing events or transaction digest errors
+        console.warn('Could not fetch repay events:', eventError.message);
+      }
 
       // Calculate user's loans
       let totalBorrowed = 0;
