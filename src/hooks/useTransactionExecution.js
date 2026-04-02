@@ -113,6 +113,23 @@ export const useTransactionExecution = () => {
                 toast.error('Gas estimation failed', {
                   description: 'Unable to estimate gas for this transaction',
                 });
+              } else if (msg.includes('wallet-rpc') || msg.includes('Failed to fetch')) {
+                toast.error('Wallet Connection Error', {
+                  description: 'Please disconnect and reconnect your wallet. See console for details.',
+                  duration: 6000,
+                });
+                console.error('🔴 WALLET RPC ERROR - Follow these steps:');
+                console.error('1. Open Sui Wallet → Settings → Connected Sites');
+                console.error('2. Disconnect this site');
+                console.error('3. Clear browser cache (Ctrl+Shift+Delete)');
+                console.error('4. Refresh page and reconnect wallet');
+                console.error('5. When connecting, click "Proceed anyway" on security warning');
+                console.error('Full error:', txError);
+              } else if (msg.includes('verify') || msg.includes('security')) {
+                toast.error('Security Validation Error', {
+                  description: 'Click "Proceed anyway" in your wallet. This is normal for localhost.',
+                  duration: 6000,
+                });
               } else {
                 toast.error('Transaction failed', {
                   description: msg.length > 100 ? msg.slice(0, 100) + '...' : msg,
