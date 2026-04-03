@@ -28,9 +28,15 @@ const { networkConfig, useNetworkVariable } = createNetworkConfig({
 export { networkConfig, useNetworkVariable };
 
 // Deployed package IDs on Sui Testnet - Updated with debt tracking system
+// ⚠️ IMPORTANT: If you see "unable to locate packageID" error in Suiet wallet:
+// This means the package doesn't exist on testnet. Solutions:
+// 1. Use Sui Wallet or Splash Wallet (they don't validate package ID on connect)
+// 2. Set USE_DEMO_MODE = true below to test UI without blockchain
+// 3. Redeploy contracts and update this package ID
 export const SUI_PACKAGE_ID = '0x8853e2763099cbbd1fd5281a9823d8d76d8423a89fb8068d7c21bd4f06118088';
 
 // Real object IDs from Sui Testnet
+// These must exist on blockchain for real transactions to work
 export const LENDING_POOL_OBJECT_ID = '0x082dab87c4c23ed818c67bafd0cd4c2b38e8b4b8668387653dbc2ee0474b1b71';
 export const CREDIT_PROFILE_OBJECT_ID = '0xd8fc84c31c80f58b6ab4fc3aa153cddc232bbb745187be56da1c33ea3ee94c2a'; 
 
@@ -52,3 +58,15 @@ export const USE_DEMO_MODE = false;
 
 export const ACTIVE_NETWORK = 'testnet';
 export const EXPLORER_URL = 'https://suiscan.xyz/testnet';
+
+// Log package ID info on app load
+if (typeof window !== 'undefined') {
+  console.log('%c🔷 MoonCreditFi - Sui dApp Configuration', 'color: #4F46E5; font-size: 14px; font-weight: bold;');
+  console.log('%cNetwork:', 'font-weight: bold;', ACTIVE_NETWORK);
+  console.log('%cPackage ID:', 'font-weight: bold;', SUI_PACKAGE_ID);
+  console.log('%cRPC Endpoint:', 'font-weight: bold;', TESTNET_RPC);
+  console.log('%c⚠️ Suiet Wallet Users:', 'color: #F59E0B; font-weight: bold;');
+  console.log('%cIf you see "unable to locate packageID" error, use Sui Wallet or Splash Wallet instead.', 'color: #F59E0B;');
+  console.log('%cSuiet validates package IDs on connection, which may fail if contracts need redeployment.', 'color: #F59E0B;');
+}
+

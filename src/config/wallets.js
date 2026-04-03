@@ -20,6 +20,20 @@ export const SUPPORTED_WALLETS = {
     },
     recommended: true,
   },
+  suiet: {
+    id: 'suiet',
+    name: 'Suiet Wallet',
+    displayName: 'Suiet',
+    description: 'Feature-rich wallet',
+    icon: '🔮',
+    deepLink: 'suiet://',
+    downloadUrls: {
+      chrome: 'https://chrome.google.com/webstore/detail/suiet-sui-wallet/khpkpbbcccdmmclmpigdgddabeilkdpd',
+      web: 'https://suiet.app/',
+    },
+    recommended: false,
+    desktopOnly: true,
+  },
   splash: {
     id: 'splash',
     name: 'Splash Wallet',
@@ -95,6 +109,11 @@ export const detectInstalledWallets = () => {
   // Check for Sui Wallet
   if (window.suiWallet || window['sui:wallet']) {
     installed.push('sui');
+  }
+  
+  // Check for Suiet
+  if (window.suiet || window.ethereum?.isSuiet) {
+    installed.push('suiet');
   }
   
   // Check for Suiet

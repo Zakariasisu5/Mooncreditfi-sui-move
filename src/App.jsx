@@ -39,7 +39,7 @@ const App = () => {
       <SuiClientProvider networks={networkConfig} defaultNetwork={ACTIVE_NETWORK}>
         <SuiWalletProvider 
           autoConnect={true}
-          preferredWallets={['Sui Wallet', 'Splash Wallet']}
+          preferredWallets={['Sui Wallet', 'Suiet', 'Splash Wallet']}
           enableUnsafeBurner={false}
           features={['sui:signTransactionBlock', 'sui:signAndExecuteTransactionBlock']}
         >
