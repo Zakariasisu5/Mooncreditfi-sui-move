@@ -1,6 +1,12 @@
 /**
  * Contract Service - Production-ready Sui contract interactions
  * Handles all Move contract calls with proper error handling and validation
+ * 
+ * SECURITY HARDENING:
+ * - Input validation before all transactions
+ * - Amount sanitization
+ * - Address validation
+ * - Safe arithmetic operations
  */
 
 import { Transaction } from '@mysten/sui/transactions';
@@ -10,15 +16,32 @@ import {
   CREDIT_PROFILE_OBJECT_ID,
   DEPIN_FINANCE_OBJECT_ID,
 } from '@/config/sui';
+import { InputValidator } from '@/utils/securityValidation';
 
 // Conversion constants
 const MIST_PER_SUI = 1_000_000_000;
 
 /**
- * Convert SUI to MIST
+ * Convert SUI to MIST with validation
+ * SECURITY: Prevents overflow and validates input
  */
 export const suiToMist = (sui) => {
-  return Math.floor(parseFloat(sui) * MIST_PER_SUI);
+  // Validate input
+  const validation = InputValidator.validateAmount(sui, 0);
+  if (!validation.isValid) {
+    throw new Error(validation.error);
+  }
+  
+  const sanitized = validation.sanitizedValue;
+  const mist = Math.floor(sanitized * MIST_PER_SUI);
+  
+  // Check for overflow (max u64 in Move)
+  const MAX_U64 = BigInt('18446744073709551615');
+  if (BigInt(mist) > MAX_U64) {
+    throw new Error('Amount too large (overflow)');
+  }
+  
+  return mist;
 };
 
 /**
@@ -102,12 +125,13 @@ export const CreditProfileService = {
  */
 export const BorrowingService = {
   /**
-   * Create a borrow transaction
+   * Create a borrow transaction with loan duration
    * @param {string} profileObjectId - Credit profile object ID
    * @param {number} amountInSui - Amount to borrow in SUI
+   * @param {number} durationDays - Loan duration (30, 60, or 90 days)
    * @returns {Transaction}
    */
-  createBorrowTransaction: (profileObjectId, amountInSui) => {
+  createBorrowTransaction: (profileObjectId, amountInSui, durationDays = 30) => {
     const tx = new Transaction();
     const amountInMist = suiToMist(amountInSui);
     
@@ -117,6 +141,8 @@ export const BorrowingService = {
         tx.object(LENDING_POOL_OBJECT_ID),
         tx.object(profileObjectId),
         tx.pure.u64(amountInMist),
+        tx.pure.u64(durationDays),
+        tx.object('0x6'), // Clock object (shared object at 0x6)
       ],
     });
     
@@ -124,12 +150,13 @@ export const BorrowingService = {
   },
 
   /**
-   * Create a repay transaction
+   * Create a repay transaction for a specific loan
    * @param {string} profileObjectId - Credit profile object ID
+   * @param {string} loanObjectId - Loan object ID to repay
    * @param {number} amountInSui - Amount to repay in SUI
    * @returns {Transaction}
    */
-  createRepayTransaction: (profileObjectId, amountInSui) => {
+  createRepayTransaction: (profileObjectId, loanObjectId, amountInSui) => {
     const tx = new Transaction();
     const amountInMist = suiToMist(amountInSui);
     
@@ -141,7 +168,30 @@ export const BorrowingService = {
       arguments: [
         tx.object(LENDING_POOL_OBJECT_ID),
         tx.object(profileObjectId),
+        tx.object(loanObjectId),
         coin,
+        tx.object('0x6'), // Clock object (shared object at 0x6)
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Create a mark default transaction
+   * @param {string} profileObjectId - Credit profile object ID
+   * @param {string} loanObjectId - Loan object ID to mark as defaulted
+   * @returns {Transaction}
+   */
+  createMarkDefaultTransaction: (profileObjectId, loanObjectId) => {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::lending_logic::mark_loan_default`,
+      arguments: [
+        tx.object(profileObjectId),
+        tx.object(loanObjectId),
+        tx.object('0x6'), // Clock object (shared object at 0x6)
       ],
     });
     
@@ -225,67 +275,107 @@ export const DePINService = {
 };
 
 /**
- * Validation helpers
+ * Validation helpers with security hardening
  */
 export const ValidationService = {
   /**
-   * Validate SUI amount
+   * Validate SUI amount with comprehensive checks
+   * SECURITY: Prevents zero amounts, negative amounts, NaN, overflow
    */
   validateAmount: (amount, minAmount = 0.01) => {
-    const numAmount = parseFloat(amount);
-    if (isNaN(numAmount) || numAmount < minAmount) {
-      throw new Error(`Amount must be at least ${minAmount} SUI`);
+    const validation = InputValidator.validateAmount(amount, minAmount);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
-    return numAmount;
+    return validation.sanitizedValue;
   },
 
   /**
    * Validate Sui address
+   * SECURITY: Prevents invalid addresses, injection attacks
    */
   validateAddress: (address) => {
-    if (!address || !address.startsWith('0x')) {
-      throw new Error('Invalid Sui address');
+    const validation = InputValidator.validateAddress(address);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
-    return address;
+    return validation.sanitizedValue;
   },
 
   /**
    * Validate object ID
+   * SECURITY: Prevents invalid object IDs
    */
   validateObjectId: (objectId) => {
-    if (!objectId || !objectId.startsWith('0x')) {
-      throw new Error('Invalid object ID');
+    const validation = InputValidator.validateObjectId(objectId);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
-    return objectId;
+    return validation.sanitizedValue;
   },
 
   /**
    * Validate credit score
+   * SECURITY: Enforces minimum score requirements
    */
   validateCreditScore: (score, minScore = 500) => {
-    if (score < minScore) {
-      throw new Error(`Credit score must be at least ${minScore} to borrow`);
+    const validation = InputValidator.validateCreditScore(score, minScore);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
     }
     return true;
+  },
+
+  /**
+   * Validate loan duration
+   * SECURITY: Only allows 30, 60, or 90 days
+   */
+  validateLoanDuration: (duration) => {
+    const validation = InputValidator.validateLoanDuration(duration);
+    if (!validation.isValid) {
+      throw new Error(validation.error);
+    }
+    return validation.sanitizedValue;
   },
 };
 
 /**
- * Error handling helpers
+ * Error handling helpers with security context
  */
 export const ErrorService = {
   /**
-   * Parse contract error
+   * Parse contract error with security context
+   * SECURITY: Provides detailed error information for debugging
    */
   parseContractError: (error) => {
     const errorMessage = error?.message || error?.toString() || 'Unknown error';
     
+    // Security-related errors
+    if (errorMessage.includes('ENotOwner') || errorMessage.includes('ownership')) {
+      return 'Unauthorized: You do not own this resource';
+    }
+    if (errorMessage.includes('ELoanAlreadyRepaid')) {
+      return 'Security: Loan already repaid (double repayment prevented)';
+    }
+    if (errorMessage.includes('EZeroAmount') || errorMessage.includes('zero')) {
+      return 'Invalid amount: Must be greater than zero';
+    }
+    if (errorMessage.includes('EExceedsMaxBorrowLimit')) {
+      return 'Amount exceeds your credit limit (on-chain enforcement)';
+    }
+    if (errorMessage.includes('ECreditScoreTooLow')) {
+      return 'Credit score too low (minimum 500 required)';
+    }
+    if (errorMessage.includes('EInvalidLoanDuration')) {
+      return 'Invalid loan duration (must be 30, 60, or 90 days)';
+    }
+    if (errorMessage.includes('EUnderflowPrevention')) {
+      return 'Security: Arithmetic underflow prevented';
+    }
+    
     // Common error patterns
     if (errorMessage.includes('Insufficient')) {
       return 'Insufficient balance or liquidity';
-    }
-    if (errorMessage.includes('credit score')) {
-      return 'Credit score too low to borrow';
     }
     if (errorMessage.includes('gas')) {
       return 'Insufficient gas for transaction';
@@ -293,12 +383,18 @@ export const ErrorService = {
     if (errorMessage.includes('rejected')) {
       return 'Transaction rejected by user';
     }
+    if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+      return 'Rate limit exceeded. Please wait and try again.';
+    }
+    if (errorMessage.includes('503') || errorMessage.includes('Service Unavailable')) {
+      return 'Network temporarily unavailable. Please try again.';
+    }
     
     return errorMessage;
   },
 
   /**
-   * Get user-friendly error message
+   * Get user-friendly error message with security details
    */
   getUserFriendlyError: (error) => {
     const parsed = ErrorService.parseContractError(error);
@@ -306,6 +402,7 @@ export const ErrorService = {
       title: 'Transaction Failed',
       message: parsed,
       technical: error?.message || error?.toString(),
+      isSecurityError: parsed.includes('Security:') || parsed.includes('Unauthorized:'),
     };
   },
 };

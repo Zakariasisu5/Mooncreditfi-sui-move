@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useCreditProfile, useMaxBorrowLimit, useInvalidateQueries } from '@/hooks/useContractData';
 import { CreditProfileService, ErrorService } from '@/services/contractService';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
+import { useSecureTransaction } from '@/hooks/useSecureTransaction';
 
 const CreditProfileProduction = () => {
   const account = useCurrentAccount();
@@ -26,7 +27,9 @@ const CreditProfileProduction = () => {
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useCreditProfile();
   const { maxBorrowLimit, creditScore, creditRating, hasProfile } = useMaxBorrowLimit();
   const { invalidateAll } = useInvalidateQueries();
-  const { executeTransaction, isPending, isConfirming } = useTransactionExecution();
+  
+  // SECURITY: Use secure transaction execution
+  const { executeSecureTransaction, isPending, isConfirming } = useSecureTransaction();
 
   const [aiAnalysis, setAiAnalysis] = useState(null);
 
@@ -39,9 +42,13 @@ const CreditProfileProduction = () => {
     try {
       const tx = CreditProfileService.createProfileTransaction();
 
-      await executeTransaction(tx, {
+      // SECURITY: Execute with validation
+      await executeSecureTransaction(tx, {
+        type: 'createProfile',
+        validationParams: {},
         onSuccess: (digest) => {
           toast.success('Credit profile created successfully!');
+          // SECURITY: Wait for on-chain confirmation before updating UI
           setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
@@ -50,8 +57,8 @@ const CreditProfileProduction = () => {
         },
       });
     } catch (error) {
-      const friendlyError = ErrorService.getUserFriendlyError(error);
-      toast.error(friendlyError.message);
+      // Error already handled by secure transaction hook
+      console.error('Create profile error:', error);
     }
   };
 

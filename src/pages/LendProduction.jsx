@@ -17,6 +17,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { DollarSign, TrendingUp, Wallet, Gift, Loader2, ExternalLink, RefreshCw, PiggyBank, Activity, Info, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
+import { useSecureTransaction } from '@/hooks/useSecureTransaction';
 import { useLendingPool, useUserBalance, useUserDeposits, useInvalidateQueries } from '@/hooks/useContractData';
 import { LendingPoolService, ValidationService, ErrorService } from '@/services/contractService';
 import { EXPLORER_URL } from '@/config/sui';
@@ -34,8 +35,8 @@ const LendProduction = () => {
   const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
   const { invalidateAll } = useInvalidateQueries();
 
-  // Transaction execution
-  const { executeTransaction, lastDigest, isPending, isConfirming } = useTransactionExecution();
+  // SECURITY: Use secure transaction execution
+  const { executeSecureTransaction, lastDigest, isPending, isConfirming } = useSecureTransaction();
 
   // Real user position data from blockchain events
   const depositedBalance = userDeposits?.netDeposited || 0;
@@ -48,25 +49,21 @@ const LendProduction = () => {
     }
 
     try {
-      // Validate amount
-      const validAmount = ValidationService.validateAmount(depositAmount, 0.01);
-
-      // Check balance
-      if (balance && validAmount > balance) {
-        toast.error(`Insufficient balance. You have ${balance.toFixed(4)} SUI`);
-        return;
-      }
-
       // Create transaction
-      const tx = LendingPoolService.createDepositTransaction(validAmount);
+      const tx = LendingPoolService.createDepositTransaction(depositAmount);
 
-      // Execute transaction
-      await executeTransaction(tx, {
+      // SECURITY: Execute with comprehensive validation
+      await executeSecureTransaction(tx, {
+        type: 'deposit',
+        validationParams: {
+          amount: depositAmount,
+          balance,
+        },
         onSuccess: (digest) => {
           toast.success('Deposit successful!');
-          addNotification(`Deposited ${validAmount} SUI to lending pool`, 'success');
+          addNotification(`Deposited ${depositAmount} SUI to lending pool`, 'success');
           setDepositAmount('');
-          // Invalidate queries to refetch data
+          // SECURITY: Wait for on-chain confirmation before updating UI
           setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
@@ -75,8 +72,8 @@ const LendProduction = () => {
         },
       });
     } catch (error) {
-      const friendlyError = ErrorService.getUserFriendlyError(error);
-      toast.error(friendlyError.message);
+      // Error already handled by secure transaction hook
+      console.error('Deposit error:', error);
     }
   };
 
@@ -87,24 +84,21 @@ const LendProduction = () => {
     }
 
     try {
-      // Validate amount
-      const validAmount = ValidationService.validateAmount(withdrawAmount, 0.01);
-
-      // Check deposited balance
-      if (parseFloat(depositedBalance) < validAmount) {
-        toast.error(`Insufficient deposited balance. You have ${depositedBalance} SUI deposited`);
-        return;
-      }
-
       // Create transaction
-      const tx = LendingPoolService.createWithdrawTransaction(validAmount);
+      const tx = LendingPoolService.createWithdrawTransaction(withdrawAmount);
 
-      // Execute transaction
-      await executeTransaction(tx, {
+      // SECURITY: Execute with comprehensive validation
+      await executeSecureTransaction(tx, {
+        type: 'withdraw',
+        validationParams: {
+          amount: withdrawAmount,
+          userDeposits,
+        },
         onSuccess: (digest) => {
           toast.success('Withdrawal successful!');
-          addNotification(`Withdrew ${validAmount} SUI from lending pool`, 'success');
+          addNotification(`Withdrew ${withdrawAmount} SUI from lending pool`, 'success');
           setWithdrawAmount('');
+          // SECURITY: Wait for on-chain confirmation before updating UI
           setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
@@ -113,8 +107,8 @@ const LendProduction = () => {
         },
       });
     } catch (error) {
-      const friendlyError = ErrorService.getUserFriendlyError(error);
-      toast.error(friendlyError.message);
+      // Error already handled by secure transaction hook
+      console.error('Withdraw error:', error);
     }
   };
 
@@ -136,11 +130,17 @@ const LendProduction = () => {
       // Create withdrawal transaction for yield amount
       const tx = LendingPoolService.createWithdrawTransaction(yieldAmount);
 
-      // Execute transaction
-      await executeTransaction(tx, {
+      // SECURITY: Execute with validation
+      await executeSecureTransaction(tx, {
+        type: 'withdraw',
+        validationParams: {
+          amount: yieldAmount,
+          userDeposits,
+        },
         onSuccess: (digest) => {
           toast.success(`Successfully claimed ${yieldAmount.toFixed(6)} SUI yield!`);
           addNotification(`Claimed ${yieldAmount.toFixed(6)} SUI yield`, 'success');
+          // SECURITY: Wait for on-chain confirmation before updating UI
           setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
@@ -149,8 +149,8 @@ const LendProduction = () => {
         },
       });
     } catch (error) {
-      const friendlyError = ErrorService.getUserFriendlyError(error);
-      toast.error(friendlyError.message);
+      // Error already handled by secure transaction hook
+      console.error('Claim yield error:', error);
     }
   };
 

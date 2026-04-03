@@ -1,31 +1,48 @@
 import { createNetworkConfig } from '@mysten/dapp-kit';
 
-// Use RPC endpoint with full indexing support
-// Suiet RPC has CORS enabled and supports all indexing features
-const TESTNET_RPC = import.meta.env.VITE_SUI_RPC_URL || 'https://rpc-testnet.suiscan.xyz:443';
+// SECURITY: Multiple RPC endpoints for fallback and resilience
+// Primary: SuiScan RPC (CORS-enabled, full indexing)
+// Fallback: Official Sui RPC
+const RPC_ENDPOINTS = {
+  testnet: [
+    'https://rpc-testnet.suiscan.xyz:443', // Primary - CORS enabled
+    'https://fullnode.testnet.sui.io:443', // Fallback
+  ],
+  mainnet: [
+    'https://fullnode.mainnet.sui.io:443',
+  ],
+  devnet: [
+    'https://fullnode.devnet.sui.io:443',
+  ],
+};
+
+const TESTNET_RPC = import.meta.env.VITE_SUI_RPC_URL || RPC_ENDPOINTS.testnet[0];
 
 const { networkConfig, useNetworkVariable } = createNetworkConfig({
   testnet: { 
     url: TESTNET_RPC,
     variables: {
-      rpcUrl: TESTNET_RPC
+      rpcUrl: TESTNET_RPC,
+      fallbackRpcs: RPC_ENDPOINTS.testnet,
     }
   },
   mainnet: { 
-    url: 'https://fullnode.mainnet.sui.io:443',
+    url: RPC_ENDPOINTS.mainnet[0],
     variables: {
-      rpcUrl: 'https://fullnode.mainnet.sui.io:443'
+      rpcUrl: RPC_ENDPOINTS.mainnet[0],
+      fallbackRpcs: RPC_ENDPOINTS.mainnet,
     }
   },
   devnet: { 
-    url: 'https://fullnode.devnet.sui.io:443',
+    url: RPC_ENDPOINTS.devnet[0],
     variables: {
-      rpcUrl: 'https://fullnode.devnet.sui.io:443'
+      rpcUrl: RPC_ENDPOINTS.devnet[0],
+      fallbackRpcs: RPC_ENDPOINTS.devnet,
     }
   },
 });
 
-export { networkConfig, useNetworkVariable };
+export { networkConfig, useNetworkVariable, RPC_ENDPOINTS };
 
 // Deployed package IDs on Sui Testnet - Updated with debt tracking system
 // ⚠️ IMPORTANT: If you see "unable to locate packageID" error in Suiet wallet:
@@ -58,15 +75,4 @@ export const USE_DEMO_MODE = false;
 
 export const ACTIVE_NETWORK = 'testnet';
 export const EXPLORER_URL = 'https://suiscan.xyz/testnet';
-
-// Log package ID info on app load
-if (typeof window !== 'undefined') {
-  console.log('%c🔷 MoonCreditFi - Sui dApp Configuration', 'color: #4F46E5; font-size: 14px; font-weight: bold;');
-  console.log('%cNetwork:', 'font-weight: bold;', ACTIVE_NETWORK);
-  console.log('%cPackage ID:', 'font-weight: bold;', SUI_PACKAGE_ID);
-  console.log('%cRPC Endpoint:', 'font-weight: bold;', TESTNET_RPC);
-  console.log('%c⚠️ Suiet Wallet Users:', 'color: #F59E0B; font-weight: bold;');
-  console.log('%cIf you see "unable to locate packageID" error, use Sui Wallet or Splash Wallet instead.', 'color: #F59E0B;');
-  console.log('%cSuiet validates package IDs on connection, which may fail if contracts need redeployment.', 'color: #F59E0B;');
-}
 

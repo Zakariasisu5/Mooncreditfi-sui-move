@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -15,7 +16,8 @@ import { DollarSign, CreditCard, TrendingUp, Clock, CheckCircle, XCircle, Loader
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
-import { useCreditProfile, useMaxBorrowLimit, useLendingPool, useInvalidateQueries, useUserLoans } from '@/hooks/useContractData';
+import { useSecureTransaction } from '@/hooks/useSecureTransaction';
+import { useCreditProfile, useMaxBorrowLimit, useLendingPool, useInvalidateQueries, useUserLoans, useUserBalance } from '@/hooks/useContractData';
 import { BorrowingService, CreditProfileService, ValidationService, ErrorService } from '@/services/contractService';
 import { EXPLORER_URL } from '@/config/sui';
 
@@ -25,16 +27,19 @@ const BorrowProduction = () => {
   const { addNotification } = useNotifications();
   const [borrowAmount, setBorrowAmount] = useState('');
   const [repayAmount, setRepayAmount] = useState('');
+  const [loanDuration, setLoanDuration] = useState(30); // Default 30 days
+  const [selectedLoanId, setSelectedLoanId] = useState(null); // For repayment
 
   // Fetch data from blockchain
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useCreditProfile();
   const { data: pool, isLoading: isLoadingPool } = useLendingPool();
   const { data: loanData, isLoading: isLoadingLoans } = useUserLoans();
+  const { data: balance, isLoading: isLoadingBalance } = useUserBalance();
   const { maxBorrowLimit, creditScore, creditRating, hasProfile } = useMaxBorrowLimit();
   const { invalidateAll } = useInvalidateQueries();
 
-  // Transaction execution
-  const { executeTransaction, lastDigest, isPending, isConfirming } = useTransactionExecution();
+  // SECURITY: Use secure transaction execution
+  const { executeSecureTransaction, lastDigest, isPending, isConfirming } = useSecureTransaction();
 
   // Active loan data - prioritize profile.debt (on-chain source of truth)
   const currentDebt = profile?.debt || 0;
@@ -64,10 +69,14 @@ const BorrowProduction = () => {
     try {
       const tx = CreditProfileService.createProfileTransaction();
 
-      await executeTransaction(tx, {
+      // SECURITY: Execute with validation
+      await executeSecureTransaction(tx, {
+        type: 'createProfile',
+        validationParams: {},
         onSuccess: (digest) => {
           toast.success('Credit profile created successfully!');
           addNotification('Credit profile created', 'success');
+          // SECURITY: Wait for on-chain confirmation before updating UI
           setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
@@ -76,8 +85,8 @@ const BorrowProduction = () => {
         },
       });
     } catch (error) {
-      const friendlyError = ErrorService.getUserFriendlyError(error);
-      toast.error(friendlyError.message);
+      // Error already handled by secure transaction hook
+      console.error('Create profile error:', error);
     }
   };
 
@@ -93,33 +102,24 @@ const BorrowProduction = () => {
     }
 
     try {
-      // Validate amount
-      const validAmount = ValidationService.validateAmount(borrowAmount, 0.01);
+      // Create transaction with loan duration
+      const tx = BorrowingService.createBorrowTransaction(profile.objectId, borrowAmount, loanDuration);
 
-      // Validate credit score
-      ValidationService.validateCreditScore(creditScore, 500);
-
-      // Check borrow limit
-      if (validAmount > maxBorrowLimit) {
-        toast.error(`Amount exceeds your borrowing limit of ${maxBorrowLimit.toFixed(4)} SUI`);
-        return;
-      }
-
-      // Check pool liquidity
-      if (pool && validAmount > pool.availableLiquidity) {
-        toast.error(`Insufficient pool liquidity. Available: ${pool.availableLiquidity.toFixed(4)} SUI`);
-        return;
-      }
-
-      // Create transaction
-      const tx = BorrowingService.createBorrowTransaction(profile.objectId, validAmount);
-
-      // Execute transaction
-      await executeTransaction(tx, {
+      // SECURITY: Execute with comprehensive validation
+      await executeSecureTransaction(tx, {
+        type: 'borrow',
+        validationParams: {
+          amount: borrowAmount,
+          duration: loanDuration,
+          profile,
+          pool,
+          balance,
+        },
         onSuccess: (digest) => {
           toast.success('Borrow successful!');
-          addNotification(`Borrowed ${validAmount} SUI`, 'success');
+          addNotification(`Borrowed ${borrowAmount} SUI`, 'success');
           setBorrowAmount('');
+          // SECURITY: Wait for on-chain confirmation before updating UI
           setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
@@ -128,8 +128,8 @@ const BorrowProduction = () => {
         },
       });
     } catch (error) {
-      const friendlyError = ErrorService.getUserFriendlyError(error);
-      toast.error(friendlyError.message);
+      // Error already handled by secure transaction hook
+      console.error('Borrow error:', error);
     }
   };
 
@@ -145,18 +145,22 @@ const BorrowProduction = () => {
     }
 
     try {
-      // Validate amount
-      const validAmount = ValidationService.validateAmount(repayAmount, 0.01);
-
       // Create transaction
-      const tx = BorrowingService.createRepayTransaction(profile.objectId, validAmount);
+      const tx = BorrowingService.createRepayTransaction(profile.objectId, repayAmount);
 
-      // Execute transaction
-      await executeTransaction(tx, {
+      // SECURITY: Execute with comprehensive validation
+      await executeSecureTransaction(tx, {
+        type: 'repay',
+        validationParams: {
+          amount: repayAmount,
+          profile,
+          balance,
+        },
         onSuccess: (digest) => {
           toast.success('Repayment successful!');
           addNotification('Loan repaid — credit score updated', 'success');
           setRepayAmount('');
+          // SECURITY: Wait for on-chain confirmation before updating UI
           setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
@@ -165,8 +169,8 @@ const BorrowProduction = () => {
         },
       });
     } catch (error) {
-      const friendlyError = ErrorService.getUserFriendlyError(error);
-      toast.error(friendlyError.message);
+      // Error already handled by secure transaction hook
+      console.error('Repay error:', error);
     }
   };
 
@@ -232,6 +236,23 @@ const BorrowProduction = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="loan-duration">Loan Duration</Label>
+                <Select value={loanDuration.toString()} onValueChange={(val) => setLoanDuration(parseInt(val))} disabled={isProcessing || !hasProfile}>
+                  <SelectTrigger id="loan-duration">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 Days</SelectItem>
+                    <SelectItem value="60">60 Days</SelectItem>
+                    <SelectItem value="90">90 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Longer durations may have higher total interest
+                </p>
+              </div>
+
               <div className="p-3 bg-muted rounded-lg space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Your Credit Score</span>
@@ -260,15 +281,15 @@ const BorrowProduction = () => {
               {borrowAmount && parseFloat(borrowAmount) > 0 && (
                 <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 text-sm space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Est. Interest (30 days)</span>
+                    <span className="text-muted-foreground">Est. Interest ({loanDuration} days)</span>
                     <span className="font-medium">
-                      {((parseFloat(borrowAmount) * interestRate / 100) * (30 / 365)).toFixed(6)} SUI
+                      {((parseFloat(borrowAmount) * interestRate / 100) * (loanDuration / 365)).toFixed(6)} SUI
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total to Repay</span>
                     <span className="font-medium text-primary">
-                      {(parseFloat(borrowAmount) + (parseFloat(borrowAmount) * interestRate / 100) * (30 / 365)).toFixed(6)} SUI
+                      {(parseFloat(borrowAmount) + (parseFloat(borrowAmount) * interestRate / 100) * (loanDuration / 365)).toFixed(6)} SUI
                     </span>
                   </div>
                 </div>

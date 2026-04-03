@@ -3,31 +3,27 @@ module mooncreditfi::credit_profile {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::event;
+    use mooncreditfi::credit_scoring;
 
-    /// Credit profile for a user
     public struct CreditProfile has key, store {
         id: UID,
         owner: address,
         score: u64,
-        debt: u64,              // Current outstanding debt (principal only)
-        total_borrowed: u64,    // Lifetime total borrowed
-        total_repaid: u64,      // Lifetime total repaid
-        loan_count: u64,        // Number of loans taken
-        default_count: u64,     // Number of defaults
+        debt: u64,
+        total_borrowed: u64,
+        total_repaid: u64,
+        loan_count: u64,
+        default_count: u64,
+        repayment_history_count: u64,
+        last_activity_time: u64,
     }
-
-    /// Event emitted when a credit profile is created
     public struct ProfileCreated has copy, drop {
         profile_id: address,
         owner: address,
         initial_score: u64,
     }
 
-    /// Create a new credit profile and transfer to sender (UI-callable)
-    /// This function has NO parameters except TxContext - maximum UI compatibility
-    public entry fun create_profile(
-        ctx: &mut TxContext
-    ) {
+    public entry fun create_profile(ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
         let uid = object::new(ctx);
         let profile_id = object::uid_to_address(&uid);
@@ -35,114 +31,114 @@ module mooncreditfi::credit_profile {
         let profile = CreditProfile {
             id: uid,
             owner: sender,
-            score: 500, // Starting score
-            debt: 0,    // No debt initially
+            score: credit_scoring::get_default_score(), // 500
+            debt: 0,
             total_borrowed: 0,
             total_repaid: 0,
             loan_count: 0,
             default_count: 0,
+            repayment_history_count: 0,
+            last_activity_time: 0,
         };
 
-        // Emit event for debugging
         event::emit(ProfileCreated {
             profile_id,
             owner: sender,
-            initial_score: 500,
+            initial_score: credit_scoring::get_default_score(),
         });
 
-        // Transfer to sender using public_transfer
         transfer::public_transfer(profile, sender);
     }
 
-    /// Get credit score
-    public fun get_score(profile: &CreditProfile): u64 {
-        profile.score
+    public fun get_score(profile: &CreditProfile): u64 { profile.score }
+    public fun get_owner(profile: &CreditProfile): address { profile.owner }
+    public fun get_total_borrowed(profile: &CreditProfile): u64 { profile.total_borrowed }
+    public fun get_total_repaid(profile: &CreditProfile): u64 { profile.total_repaid }
+    public fun get_loan_count(profile: &CreditProfile): u64 { profile.loan_count }
+    public fun get_default_count(profile: &CreditProfile): u64 { profile.default_count }
+    public fun get_debt(profile: &CreditProfile): u64 { profile.debt }
+    public fun get_repayment_history_count(profile: &CreditProfile): u64 { profile.repayment_history_count }
+    public fun get_last_activity_time(profile: &CreditProfile): u64 { profile.last_activity_time }
+    public fun calculate_max_borrow_limit(profile: &CreditProfile): u64 {
+        credit_scoring::calculate_max_borrow_limit(profile.score)
     }
 
-    /// Get owner
-    public fun get_owner(profile: &CreditProfile): address {
-        profile.owner
+    public fun calculate_interest_rate(profile: &CreditProfile): u64 {
+        credit_scoring::calculate_interest_rate(profile.score)
     }
 
-    /// Get total borrowed
-    public fun get_total_borrowed(profile: &CreditProfile): u64 {
-        profile.total_borrowed
-    }
-
-    /// Get total repaid
-    public fun get_total_repaid(profile: &CreditProfile): u64 {
-        profile.total_repaid
-    }
-
-    /// Get loan count
-    public fun get_loan_count(profile: &CreditProfile): u64 {
-        profile.loan_count
-    }
-
-    /// Get default count
-    public fun get_default_count(profile: &CreditProfile): u64 {
-        profile.default_count
-    }
-
-    /// Get current debt
-    public fun get_debt(profile: &CreditProfile): u64 {
-        profile.debt
-    }
-
-    /// Update score (internal function)
     public(package) fun update_score(profile: &mut CreditProfile, new_score: u64) {
         profile.score = new_score;
     }
 
-    /// Record a borrow - updates debt and lifetime stats
-    public(package) fun record_borrow(profile: &mut CreditProfile, amount: u64) {
-        profile.debt = profile.debt + amount;              // Increase current debt
-        profile.total_borrowed = profile.total_borrowed + amount;  // Track lifetime borrowed
-        profile.loan_count = profile.loan_count + 1;       // Increment loan count
+    public(package) fun update_activity_time(profile: &mut CreditProfile, timestamp: u64) {
+        profile.last_activity_time = timestamp;
     }
 
-    /// Record a full repayment - clears debt and rewards credit score
-    /// Returns true if debt was fully paid
-    public(package) fun record_full_repayment(profile: &mut CreditProfile, amount: u64): bool {
-        assert!(amount >= profile.debt, 0); // Must pay at least the debt
+    public(package) fun record_borrow(profile: &mut CreditProfile, amount: u64, timestamp: u64) {
+        profile.debt = profile.debt + amount;
+        profile.total_borrowed = profile.total_borrowed + amount;
+        profile.loan_count = profile.loan_count + 1;
+        profile.last_activity_time = timestamp;
+    }
+
+    public(package) fun record_full_repayment(
+        profile: &mut CreditProfile, 
+        amount: u64,
+        is_early: bool,
+        timestamp: u64
+    ): bool {
+        assert!(amount >= profile.debt, 0);
         
-        profile.total_repaid = profile.total_repaid + profile.debt;  // Track actual debt repaid
-        profile.debt = 0;  // Clear debt
+        profile.total_repaid = profile.total_repaid + profile.debt;
+        profile.debt = 0;
+        profile.repayment_history_count = profile.repayment_history_count + 1;
+        profile.last_activity_time = timestamp;
         
-        // Reward good behavior with significant score increase
-        if (profile.score <= 830) {
-            profile.score = profile.score + 20;
-        } else if (profile.score < 850) {
-            profile.score = 850; // Cap at maximum
+        if (is_early) {
+            profile.score = credit_scoring::calculate_score_after_early_repayment(profile.score);
+        } else {
+            profile.score = credit_scoring::calculate_score_after_on_time_repayment(profile.score);
         };
         
         true
     }
-
-    /// Record a partial repayment - reduces debt and gives small score boost
-    /// Returns the amount actually applied to debt
-    public(package) fun record_partial_repayment(profile: &mut CreditProfile, amount: u64): u64 {
-        assert!(amount <= profile.debt, 1); // Cannot pay more than debt in partial repayment
+    public(package) fun record_partial_repayment(
+        profile: &mut CreditProfile, 
+        amount: u64,
+        timestamp: u64
+    ): u64 {
+        assert!(amount <= profile.debt, 1);
         
-        profile.debt = profile.debt - amount;              // Reduce current debt
-        profile.total_repaid = profile.total_repaid + amount;  // Track lifetime repaid
-        
-        // Small score increase for partial repayment
-        if (profile.score <= 845) {
-            profile.score = profile.score + 5;
-        };
-        
+        profile.debt = profile.debt - amount;
+        profile.total_repaid = profile.total_repaid + amount;
+        profile.last_activity_time = timestamp;
+        profile.score = credit_scoring::calculate_score_after_partial_repayment(profile.score);
         amount
     }
-
-    /// Record a default
-    public(package) fun record_default(profile: &mut CreditProfile) {
+    public(package) fun record_late_repayment(
+        profile: &mut CreditProfile,
+        amount: u64,
+        timestamp: u64
+    ) {
+        profile.total_repaid = profile.total_repaid + amount;
+        profile.debt = if (profile.debt >= amount) { profile.debt - amount } else { 0 };
+        profile.last_activity_time = timestamp;
+        profile.score = credit_scoring::calculate_score_after_late_repayment(profile.score);
+    }
+    public(package) fun record_default(profile: &mut CreditProfile, timestamp: u64) {
         profile.default_count = profile.default_count + 1;
-        // Decrease score on default
-        if (profile.score > 50) {
-            profile.score = profile.score - 50;
-        } else {
-            profile.score = 300; // Minimum score
-        };
+        profile.last_activity_time = timestamp;
+        profile.score = credit_scoring::calculate_score_after_default(profile.score);
+    }
+    public(package) fun recalculate_comprehensive_score(profile: &mut CreditProfile) {
+        profile.score = credit_scoring::calculate_comprehensive_score(
+            profile.score,
+            profile.total_borrowed,
+            profile.total_repaid,
+            profile.debt,
+            profile.loan_count,
+            profile.default_count,
+        );
     }
 }
