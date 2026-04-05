@@ -36,6 +36,7 @@ module mooncreditfi::depin {
         last_yield_claim: u64,
         maturity_date: u64,
     }
+
     public struct ProjectCreated has copy, drop {
         project_id: address,
         name: String,
@@ -56,19 +57,19 @@ module mooncreditfi::depin {
         from: address,
         to: address,
     }
-    
+
     public struct ProjectClosed has copy, drop {
         project_id: address,
         final_amount: u64,
     }
-    
+
     public struct YieldClaimed has copy, drop {
         nft_id: address,
         investor: address,
         yield_amount: u64,
         timestamp: u64,
     }
-    
+
     public struct NFTRedeemed has copy, drop {
         nft_id: address,
         investor: address,
@@ -88,7 +89,7 @@ module mooncreditfi::depin {
         let uid = object::new(ctx);
         let project_id = object::uid_to_address(&uid);
         let name_str = string::utf8(name);
-        
+
         let project = DepinProject {
             id: uid,
             name: name_str,
@@ -103,6 +104,7 @@ module mooncreditfi::depin {
         event::emit(ProjectCreated { project_id, name: name_str, target_amount, apy });
         transfer::share_object(project);
     }
+
     public entry fun fund_project(
         project: &mut DepinProject,
         payment: Coin<SUI>,
@@ -115,12 +117,12 @@ module mooncreditfi::depin {
         let current_time = clock::timestamp_ms(clock);
 
         assert!(project.is_active, EProjectNotActive);
-        
+
         let remaining_capacity = project.target_amount - project.current_amount;
         assert!(amount <= remaining_capacity, EExceedsFundingTarget);
 
         project.current_amount = project.current_amount + amount;
-        
+
         if (project.current_amount >= project.target_amount) {
             project.is_active = false;
             event::emit(ProjectClosed {
@@ -128,15 +130,15 @@ module mooncreditfi::depin {
                 final_amount: project.current_amount,
             });
         };
-        
+
         let payment_balance = coin::into_balance(payment);
         balance::join(&mut project.treasury_balance, payment_balance);
 
         let nft_uid = object::new(ctx);
         let nft_id = object::uid_to_address(&nft_uid);
-        
+
         let maturity_date = current_time + 31536000000; // 365 days in milliseconds
-        
+
         let nft = DepinNFT {
             id: nft_uid,
             project_id,
@@ -158,13 +160,14 @@ module mooncreditfi::depin {
 
         transfer::transfer(nft, investor);
     }
+
     public entry fun transfer_nft(nft: DepinNFT, recipient: address, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
         let nft_id = object::uid_to_address(&nft.id);
         event::emit(NFTTransferred { nft_id, from: sender, to: recipient });
         transfer::transfer(nft, recipient);
     }
-    
+
     public fun calculate_pending_yield(
         nft: &DepinNFT,
         project: &DepinProject,
@@ -172,12 +175,11 @@ module mooncreditfi::depin {
     ): u64 {
         let current_time = clock::timestamp_ms(clock);
         let time_elapsed = current_time - nft.last_yield_claim;
-        
+
         // Calculate yield: (principal * APY * time_elapsed) / (365 days in ms * 10000 basis points)
-        // APY is in basis points (e.g., 1000 = 10%)
         (nft.amount * project.apy * time_elapsed) / (365 * 86400000 * 10000)
     }
-    
+
     public entry fun claim_yield(
         project: &mut DepinProject,
         nft: &mut DepinNFT,
@@ -187,25 +189,20 @@ module mooncreditfi::depin {
         let investor = tx_context::sender(ctx);
         let nft_id = object::uid_to_address(&nft.id);
         let current_time = clock::timestamp_ms(clock);
-        
-        // Verify ownership
+
         assert!(nft.investor == investor, ENotOwner);
-        
-        // Calculate pending yield
+
         let yield_amount = calculate_pending_yield(nft, project, clock);
-        
-        // Ensure treasury has sufficient balance
+
         assert!(balance::value(&project.treasury_balance) >= yield_amount, EInsufficientTreasury);
-        
-        // Transfer yield to investor
+
         let yield_balance = balance::split(&mut project.treasury_balance, yield_amount);
         let yield_coin = coin::from_balance(yield_balance, ctx);
         transfer::public_transfer(yield_coin, investor);
-        
-        // Update NFT state
+
         nft.accumulated_yield = nft.accumulated_yield + yield_amount;
         nft.last_yield_claim = current_time;
-        
+
         event::emit(YieldClaimed {
             nft_id,
             investor,
@@ -213,7 +210,7 @@ module mooncreditfi::depin {
             timestamp: current_time,
         });
     }
-    
+
     public entry fun redeem_at_maturity(
         project: &mut DepinProject,
         nft: DepinNFT,
@@ -222,25 +219,19 @@ module mooncreditfi::depin {
     ) {
         let investor = tx_context::sender(ctx);
         let current_time = clock::timestamp_ms(clock);
-        
-        // Verify ownership
+
         assert!(nft.investor == investor, ENotOwner);
-        
-        // Verify maturity
         assert!(current_time >= nft.maturity_date, ENotMatured);
-        
-        // Calculate final yield
+
         let final_yield = calculate_pending_yield(&nft, project, clock);
         let total_return = nft.amount + final_yield;
-        
-        // Ensure treasury has sufficient balance
+
         assert!(balance::value(&project.treasury_balance) >= total_return, EInsufficientTreasury);
-        
-        // Transfer principal + yield to investor
+
         let return_balance = balance::split(&mut project.treasury_balance, total_return);
         let return_coin = coin::from_balance(return_balance, ctx);
         transfer::public_transfer(return_coin, investor);
-        
+
         let nft_id = object::uid_to_address(&nft.id);
         event::emit(NFTRedeemed {
             nft_id,
@@ -249,21 +240,21 @@ module mooncreditfi::depin {
             final_yield,
             total_return,
         });
-        
-        // Burn NFT
-        let DepinNFT { 
-            id, 
-            project_id: _, 
-            investor: _, 
-            amount: _, 
-            timestamp: _, 
-            accumulated_yield: _, 
-            last_yield_claim: _, 
-            maturity_date: _ 
+
+        let DepinNFT {
+            id,
+            project_id: _,
+            investor: _,
+            amount: _,
+            timestamp: _,
+            accumulated_yield: _,
+            last_yield_claim: _,
+            maturity_date: _
         } = nft;
         object::delete(id);
     }
-    
+
+    // Getters
     public fun get_project_name(project: &DepinProject): &String { &project.name }
     public fun get_project_description(project: &DepinProject): &String { &project.description }
     public fun get_project_target(project: &DepinProject): u64 { project.target_amount }
@@ -271,7 +262,7 @@ module mooncreditfi::depin {
     public fun get_project_apy(project: &DepinProject): u64 { project.apy }
     public fun is_project_active(project: &DepinProject): bool { project.is_active }
     public fun get_treasury_balance(project: &DepinProject): u64 { balance::value(&project.treasury_balance) }
-    
+
     public fun get_nft_project_id(nft: &DepinNFT): address { nft.project_id }
     public fun get_nft_investor(nft: &DepinNFT): address { nft.investor }
     public fun get_nft_amount(nft: &DepinNFT): u64 { nft.amount }

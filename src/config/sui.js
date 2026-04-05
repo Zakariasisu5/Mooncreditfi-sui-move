@@ -44,24 +44,24 @@ const { networkConfig, useNetworkVariable } = createNetworkConfig({
 
 export { networkConfig, useNetworkVariable, RPC_ENDPOINTS };
 
-// Deployed package IDs on Sui Testnet - Updated with collateral system and security fixes
+// Deployed package IDs on Sui Testnet - Credit-Based Lending System
 // ⚠️ IMPORTANT: If you see "unable to locate packageID" error in Suiet wallet:
 // This means the package doesn't exist on testnet. Solutions:
 // 1. Use Sui Wallet or Splash Wallet (they don't validate package ID on connect)
 // 2. Set USE_DEMO_MODE = true below to test UI without blockchain
 // 3. Redeploy contracts and update this package ID
-export const SUI_PACKAGE_ID = '0x317ea964960bd871b9a7b8b13a84080f64571966ac25517956fe9e2f2beab6b3';
+export const SUI_PACKAGE_ID = '0xf434eed382320933b03c5280ab1694807239297c16bbf3265acc57768a18adaa';
 
-// Real object IDs from Sui Testnet
+// Real object IDs from Sui Testnet - Credit-Based Lending Deployment
 // These must exist on blockchain for real transactions to work
-export const PROFILE_REGISTRY_OBJECT_ID = '0x50b5c51c42dd7460ac532d67faac95945f8fb0b163397a1ab2d65f106019ec08';
-export const UPGRADE_CAP_OBJECT_ID = '0xdbaecdfc802ff216eb551f46c145a8c4163d6c82094f4c3b6ea0a6373711f44d';
-export const LENDING_POOL_OBJECT_ID = '0x26f20a8b6c4347856a54c908ded06ef7267c11c8e32b2ada105c2713231a3a63';
-export const CREDIT_PROFILE_OBJECT_ID = '0x9bdf8a2f57168895c1599d94cc092b05c2337a622d427ec040e9088b6199a140';
+export const PROFILE_REGISTRY_OBJECT_ID = '0x78122275aaff5a52bc42f642e746aa59e30ec8dad0de03224ff745aab3050cbe';
+export const UPGRADE_CAP_OBJECT_ID = '0x836620787424ce5a54cfcbb2743eed8c57eaf33d11356a4bd8bb4e4d500559d0';
+export const LENDING_POOL_OBJECT_ID = '0x2e14b3c4af9ed29ff3ce4f9d3197286e606cd12c2bfac00bd49bfcc54bdbc7e2';
+export const CREDIT_PROFILE_OBJECT_ID = '0x9bdf8a2f57168895c1599d94cc092b05c2337a622d427ec040e9088b6199a140'; // User-specific, created on demand
 
-// DePIN Projects - Multiple infrastructure projects (Updated with new package)
+// DePIN Projects - Multiple infrastructure projects (Credit-Based Lending System)
 export const DEPIN_PROJECTS = [
-  { id: '0xbd3601cf4cd495d423bcffeabf64eacfc8b4b0ce0a05392be5874be72c8c172c', category: 'Solar', name: 'Solar Farm Network' },
+  { id: '0xa501ba4c31e035263d9797ad0cbafdef3a78ba57dd339bd10d121ee238e478e0', category: 'Solar', name: 'Solar Farm Network' },
 ];
 
 // Legacy single project ID (kept for backward compatibility)

@@ -3,7 +3,7 @@
 Write-Host "Creating DePIN Project on Sui Testnet..." -ForegroundColor Cyan
 
 # Package ID
-$PACKAGE_ID = "0xb059616029897f6436640d7c254bcc6130f157c3677bda4eaaccf9f60014fe03"
+$PACKAGE_ID = "0xea0bcec63b5d7593cc972d2c5e919324778ec69f5e68a9756dd0c91a2c42b812"
 
 # Project details
 $PROJECT_NAME = "Solar Farm"
@@ -24,7 +24,7 @@ $result = sui client call `
   --package $PACKAGE_ID `
   --module depin `
   --function create_project `
-  --args "$PROJECT_NAME" "$PROJECT_DESCRIPTION" $TARGET_AMOUNT $APY `
+  --args "$PROJECT_NAME" "$PROJECT_DESCRIPTION" $TARGET_AMOUNT $APY "0x6" `
   --gas-budget 100000000 `
   --json
 

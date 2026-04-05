@@ -198,44 +198,70 @@ export const CollateralVaultDataService = {
     try {
       const suiClient = getSuiClient();
       
-      // Step 1: Try to find vault via CollateralDeposited events (for existing vaults with collateral)
-      const depositEvents = await suiClient.queryEvents({
-        query: {
-          MoveEventType: `${SUI_PACKAGE_ID}::collateral::CollateralDeposited`,
-        },
-        limit: 50,
-        order: 'descending',
-      });
-
-      // Find vault owned by this user from deposit events
       let vaultId = null;
-      for (const event of depositEvents.data || []) {
-        if (event.parsedJson?.owner === userAddress) {
-          vaultId = event.parsedJson?.vault_id;
-          break;
+
+      // Step 1: Try to find vault via VaultCreated events (for all vaults)
+      try {
+        const createEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: `${SUI_PACKAGE_ID}::collateral::VaultCreated`,
+          },
+          limit: 100,
+          order: 'descending',
+        });
+
+        for (const event of createEvents.data || []) {
+          if (event.parsedJson?.owner === userAddress) {
+            vaultId = event.parsedJson?.vault_id;
+            break;
+          }
+        }
+      } catch (e) {
+        console.warn('VaultCreated events query failed:', e);
+      }
+
+      // Step 2: If not found, try CollateralDeposited events (for vaults with deposits)
+      if (!vaultId) {
+        const depositEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: `${SUI_PACKAGE_ID}::collateral::CollateralDeposited`,
+          },
+          limit: 50,
+          order: 'descending',
+        });
+
+        for (const event of depositEvents.data || []) {
+          if (event.parsedJson?.owner === userAddress) {
+            vaultId = event.parsedJson?.vault_id;
+            break;
+          }
         }
       }
 
-      // Step 2: If no vault found via deposit events, search using getOwnedObjects (for newly created vaults)
+      // Step 3: If still not found, try withdrawal events
       if (!vaultId) {
         try {
-          const ownedObjects = await suiClient.getOwnedObjects({
-            owner: userAddress,
+          const withdrawEvents = await suiClient.queryEvents({
+            query: {
+              MoveEventType: `${SUI_PACKAGE_ID}::collateral::CollateralWithdrawn`,
+            },
             limit: 50,
+            order: 'descending',
           });
 
-          // Look for CollateralVault object type
-          const vaultTypePrefix = `${SUI_PACKAGE_ID}::collateral::CollateralVault`;
-          for (const obj of ownedObjects.data || []) {
-            if (obj.data?.type?.includes('CollateralVault')) {
-              vaultId = obj.data.objectId;
+          for (const event of withdrawEvents.data || []) {
+            if (event.parsedJson?.owner === userAddress) {
+              vaultId = event.parsedJson?.vault_id;
               break;
             }
           }
         } catch (e) {
-          console.warn('getOwnedObjects fallback failed:', e);
+          console.warn('Withdrawal events query failed:', e);
         }
       }
+
+      // Note: CollateralVault is a SHARED object (created with transfer::share_object)
+      // so it cannot be found via getOwnedObjects(). We rely on events to find it.
 
       if (!vaultId) {
         return null; // No vault found

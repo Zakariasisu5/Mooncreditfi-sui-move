@@ -172,7 +172,7 @@ const CollateralVaultCard = () => {
           <Alert>
             <Shield className="h-4 w-4" />
             <AlertDescription>
-              Create a collateral vault to secure your loans. You'll need to deposit at least 150% of your loan amount as collateral.
+              Create a collateral vault to secure your loans. Collateral requirements depend on your credit score: 750+ = No collateral needed, 650-749 = 25%, 550-649 = 50%, 450-549 = 100%.
             </AlertDescription>
           </Alert>
 

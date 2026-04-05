@@ -7,7 +7,6 @@ module mooncreditfi::collateral {
     use sui::sui::SUI;
     use sui::event;
 
-
     // Error constants
     const ENotOwner: u64 = 1;
     const EInsufficientCollateral: u64 = 2;
@@ -34,6 +33,11 @@ module mooncreditfi::collateral {
     }
 
     // Events
+    public struct VaultCreated has copy, drop {
+        vault_id: address,
+        owner: address,
+    }
+
     public struct CollateralDeposited has copy, drop {
         vault_id: address,
         owner: address,
@@ -61,6 +65,7 @@ module mooncreditfi::collateral {
     public entry fun create_vault(ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
         let uid = object::new(ctx);
+        let vault_id = object::uid_to_address(&uid);
         
         let vault = CollateralVault {
             id: uid,
@@ -69,6 +74,11 @@ module mooncreditfi::collateral {
             collateral_amount: 0,
             borrowed_amount: 0,
         };
+        
+        event::emit(VaultCreated {
+            vault_id,
+            owner: sender,
+        });
         
         transfer::share_object(vault);
     }

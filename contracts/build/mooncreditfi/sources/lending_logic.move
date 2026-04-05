@@ -6,6 +6,7 @@ module mooncreditfi::lending_logic {
     use sui::event;
     use sui::clock::{Self, Clock};
     use mooncreditfi::credit_profile::{Self, CreditProfile};
+    use mooncreditfi::credit_scoring;
     use mooncreditfi::lending_pool::{Self, LendingPool};
     use mooncreditfi::loan::{Self, Loan};
     use mooncreditfi::collateral::{Self, CollateralVault};
@@ -21,11 +22,11 @@ module mooncreditfi::lending_logic {
     const ELoanCooldownActive: u64 = 9;
     const EInsufficientCollateral: u64 = 10;
     
-    // Prevent credit score farming
-    const MIN_LOAN_SIZE: u64 = 1_000_000_000; // 1 SUI minimum
-    const LOAN_COOLDOWN_MS: u64 = 86400000; // 24 hours (prevents rapid small loans)
+    // Credit-based lending parameters
+    const MIN_LOAN_SIZE: u64 = 1_000_000_000; // 1 SUI minimum (prevents micro-loan farming)
+    const LOAN_COOLDOWN_MS: u64 = 86400000; // 24 hours (prevents rapid loan cycling)
     
-    const MIN_CREDIT_SCORE: u64 = 500;
+    const MIN_CREDIT_SCORE: u64 = 450;  // Lowered from 500 to allow new users
     const LOAN_DURATION_30: u64 = 30;
     const LOAN_DURATION_60: u64 = 60;
     const LOAN_DURATION_90: u64 = 90;
@@ -160,8 +161,22 @@ module mooncreditfi::lending_logic {
         let liquidity = lending_pool::get_total_liquidity(pool);
         assert!(liquidity >= amount, EInsufficientLiquidity);
         
-        // Check collateral is sufficient
-        assert!(collateral::check_collateral_sufficient(vault, amount), EInsufficientCollateral);
+        // CREDIT-BASED LENDING: Hybrid collateral model based on credit score
+        // High score (>= 750) = No collateral required
+        // Medium score (550-749) = Partial collateral required
+        // Low score (< 550) = Full collateral required
+        let required_collateral_ratio = credit_scoring::get_collateral_ratio_requirement(score);
+        
+        if (required_collateral_ratio > 0) {
+            // Calculate required collateral based on score tier
+            let current_collateral = collateral::get_collateral_amount(vault);
+            let current_borrowed = collateral::get_borrowed_amount(vault);
+            let new_total_borrowed = current_borrowed + amount;
+            let total_required = (new_total_borrowed * required_collateral_ratio) / 10000;
+            
+            assert!(current_collateral >= total_required, EInsufficientCollateral);
+        };
+        // If required_collateral_ratio == 0, no collateral check needed (credit-only borrowing)
 
         let interest_rate = credit_profile::calculate_interest_rate(profile);
         let loan = loan::create_loan(sender, amount, interest_rate, duration_days, clock, ctx);

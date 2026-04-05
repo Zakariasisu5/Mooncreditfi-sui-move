@@ -9,7 +9,7 @@ import * as fs from "fs";
 
 // Configuration
 const PACKAGE_ID =
-  "0xdab56ace7345a98268bd1c2dde725f94256450386d383f3f834f2bb4711c9fdf";
+  "0xea0bcec63b5d7593cc972d2c5e919324778ec69f5e68a9756dd0c91a2c42b812"; // Latest deployment
 const NETWORK = "testnet";
 
 interface TestConfig {

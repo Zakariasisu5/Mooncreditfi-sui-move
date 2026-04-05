@@ -113,21 +113,47 @@ const BorrowProduction = () => {
 
     // Calculate required collateral
     const borrowAmountNum = parseFloat(borrowAmount);
+    
+    // Validate minimum loan size (1 SUI minimum to prevent credit score farming)
+    if (borrowAmountNum < 1) {
+      toast.error('Minimum loan amount is 1 SUI');
+      return;
+    }
+    
+    // Credit-based lending: Check collateral requirements based on credit score
+    const score = profile?.score || 500;
+    let requiredCollateralRatio = 0;
+    
+    if (score >= 750) {
+      requiredCollateralRatio = 0; // No collateral needed
+    } else if (score >= 650) {
+      requiredCollateralRatio = 0.25; // 25% collateral
+    } else if (score >= 550) {
+      requiredCollateralRatio = 0.50; // 50% collateral
+    } else if (score >= 450) {
+      requiredCollateralRatio = 1.0; // 100% collateral
+    } else {
+      requiredCollateralRatio = 1.5; // 150% collateral
+    }
+    
     const requirements = CollateralVaultDataService.calculateRequiredCollateral(
       borrowAmountNum,
       vault?.borrowedAmount || 0
     );
+    
+    // Calculate actual required collateral based on credit score
+    const creditBasedRequirement = (borrowAmountNum + (vault?.borrowedAmount || 0)) * requiredCollateralRatio;
 
-    // Check if user has enough collateral
-    if (vault.collateralAmount < requirements.minimumCollateral) {
+    // Check if user has enough collateral (if required)
+    if (requiredCollateralRatio > 0 && vault.collateralAmount < creditBasedRequirement) {
       toast.error(
-        `Insufficient collateral. You need at least ${requirements.minimumCollateral.toFixed(4)} SUI (you have ${vault.collateralAmount.toFixed(4)} SUI)`
+        `Insufficient collateral for your credit score (${score}). You need at least ${creditBasedRequirement.toFixed(4)} SUI (you have ${vault.collateralAmount.toFixed(4)} SUI). ${score >= 750 ? '' : `Improve your credit score to ${score < 550 ? '550+' : score < 650 ? '650+' : '750+'} to reduce collateral requirements.`}`
       );
       return;
     }
 
-    // Warn if below recommended threshold
-    if (vault.collateralAmount < requirements.recommendedCollateral) {
+    // Warn if below recommended threshold (only if collateral is required)
+    if (requiredCollateralRatio > 0 && vault.collateralAmount < requirements.recommendedCollateral) {
       toast.warning(
         `Your collateral is below the recommended 180% threshold. Consider depositing more to avoid liquidation risk.`
       );
@@ -254,8 +280,8 @@ const BorrowProduction = () => {
           <Shield className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-2">
-              <p className="font-medium">Collateral Required for Borrowing</p>
-              <p className="text-sm">To borrow, you need to deposit SUI as collateral (150% of borrow amount). Go to the Lend page to deposit first.</p>
+              <p className="font-medium">Credit-Based Borrowing Available</p>
+              <p className="text-sm">Collateral requirements depend on your credit score. Score 750+ = No collateral needed! Score 650-749 = 25% collateral. Score 550-649 = 50% collateral. Score 450-549 = 100% collateral.</p>
             </div>
           </AlertDescription>
         </Alert>
@@ -263,14 +289,27 @@ const BorrowProduction = () => {
 
       {/* Low Collateral Warning */}
       {isConnected && hasProfile && hasVault && borrowAmount && parseFloat(borrowAmount) > 0 && (() => {
-        const requirements = CollateralVaultDataService.calculateRequiredCollateral(
-          parseFloat(borrowAmount),
-          vault?.borrowedAmount || 0
-        );
-        const hasEnough = vault.collateralAmount >= requirements.minimumCollateral;
+        const borrowAmountNum = parseFloat(borrowAmount);
+        const score = profile?.score || 500;
+        let requiredRatio = 0;
         
-        if (!hasEnough) {
-          const needed = requirements.minimumCollateral - vault.collateralAmount;
+        if (score >= 750) {
+          requiredRatio = 0;
+        } else if (score >= 650) {
+          requiredRatio = 0.25;
+        } else if (score >= 550) {
+          requiredRatio = 0.50;
+        } else if (score >= 450) {
+          requiredRatio = 1.0;
+        } else {
+          requiredRatio = 1.5;
+        }
+        
+        const creditBasedReq = (borrowAmountNum + (vault?.borrowedAmount || 0)) * requiredRatio;
+        const hasEnough = vault.collateralAmount >= creditBasedReq;
+        
+        if (!hasEnough && requiredRatio > 0) {
+          const needed = creditBasedReq - vault.collateralAmount;
           return (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -281,7 +320,7 @@ const BorrowProduction = () => {
                     You need {needed.toFixed(4)} more SUI as collateral. Go to the Lend page to deposit more.
                   </p>
                   <p className="text-xs">
-                    Current: {vault.collateralAmount.toFixed(4)} SUI | Required: {requirements.minimumCollateral.toFixed(4)} SUI (150%)
+                    Current: {vault.collateralAmount.toFixed(4)} SUI | Required: {creditBasedReq.toFixed(4)} SUI ({(requiredRatio * 100).toFixed(0)}%)
                   </p>
                 </div>
               </AlertDescription>
@@ -308,13 +347,14 @@ const BorrowProduction = () => {
                 <Input
                   id="borrow-amount"
                   type="number"
-                  placeholder="0.01"
+                  placeholder="1.0"
                   value={borrowAmount}
                   onChange={(e) => setBorrowAmount(e.target.value)}
-                  min="0.01"
-                  step="0.01"
+                  min="1"
+                  step="0.1"
                   disabled={isProcessing || !hasProfile}
                 />
+                <p className="text-xs text-muted-foreground">Minimum loan: 1 SUI</p>
               </div>
 
               <div className="space-y-2">
@@ -344,6 +384,18 @@ const BorrowProduction = () => {
                   )}
                 </div>
                 <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Credit Tier</span>
+                  <Badge variant={creditScore >= 750 ? 'default' : creditScore >= 650 ? 'secondary' : 'outline'}>
+                    {creditScore >= 850 ? 'Excellent' : creditScore >= 750 ? 'Very Good' : creditScore >= 650 ? 'Good' : creditScore >= 550 ? 'Fair' : creditScore >= 450 ? 'Poor' : 'Very Poor'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Collateral Required</span>
+                  <span className="font-medium text-primary">
+                    {creditScore >= 750 ? '0% (None!)' : creditScore >= 650 ? '25%' : creditScore >= 550 ? '50%' : creditScore >= 450 ? '100%' : '150%'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Max Borrowable</span>
                   <span className="font-medium">{maxBorrowLimit.toFixed(4)} SUI</span>
                 </div>
@@ -358,6 +410,24 @@ const BorrowProduction = () => {
                   </div>
                 )}
               </div>
+              
+              {creditScore >= 750 && (
+                <Alert className="bg-green-50 border-green-200">
+                  <Shield className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    🎉 Excellent credit! You can borrow without collateral.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {creditScore >= 650 && creditScore < 750 && (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800">
+                    Good credit! Only {creditScore >= 650 ? '25%' : '50%'} collateral required. Reach 750+ for zero collateral.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {borrowAmount && parseFloat(borrowAmount) > 0 && (
                 <>
@@ -377,17 +447,31 @@ const BorrowProduction = () => {
                   </div>
 
                   {hasVault && (() => {
-                    const requirements = CollateralVaultDataService.calculateRequiredCollateral(
-                      parseFloat(borrowAmount),
-                      vault?.borrowedAmount || 0
-                    );
-                    const hasEnough = vault.collateralAmount >= requirements.minimumCollateral;
-                    const isRecommended = vault.collateralAmount >= requirements.recommendedCollateral;
+                    const borrowAmountNum = parseFloat(borrowAmount);
+                    const score = profile?.score || 500;
+                    let requiredRatio = 0;
+                    
+                    if (score >= 750) {
+                      requiredRatio = 0;
+                    } else if (score >= 650) {
+                      requiredRatio = 0.25;
+                    } else if (score >= 550) {
+                      requiredRatio = 0.50;
+                    } else if (score >= 450) {
+                      requiredRatio = 1.0;
+                    } else {
+                      requiredRatio = 1.5;
+                    }
+                    
+                    const creditBasedReq = (borrowAmountNum + (vault?.borrowedAmount || 0)) * requiredRatio;
+                    const recommendedReq = (borrowAmountNum + (vault?.borrowedAmount || 0)) * 1.8; // 180% recommended for safety
+                    const hasEnough = vault.collateralAmount >= creditBasedReq;
+                    const isRecommended = vault.collateralAmount >= recommendedReq;
 
                     return (
                       <div className={`p-3 rounded-lg border text-sm space-y-1 ${
-                        !hasEnough ? 'bg-red-500/10 border-red-500/20' :
-                        !isRecommended ? 'bg-yellow-500/10 border-yellow-500/20' :
+                        !hasEnough && requiredRatio > 0 ? 'bg-red-500/10 border-red-500/20' :
+                        !isRecommended && requiredRatio > 0 ? 'bg-yellow-500/10 border-yellow-500/20' :
                         'bg-green-500/10 border-green-500/20'
                       }`}>
                         <div className="flex items-center gap-2 mb-2">
@@ -399,14 +483,16 @@ const BorrowProduction = () => {
                           <span className="font-medium">{vault.collateralAmount.toFixed(4)} SUI</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Minimum Required (150%)</span>
-                          <span className="font-medium">{requirements.minimumCollateral.toFixed(4)} SUI</span>
+                          <span className="text-muted-foreground">Required for Your Score ({(requiredRatio * 100).toFixed(0)}%)</span>
+                          <span className="font-medium">{creditBasedReq.toFixed(4)} SUI</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Recommended (180%)</span>
-                          <span className="font-medium">{requirements.recommendedCollateral.toFixed(4)} SUI</span>
-                        </div>
-                        {!hasEnough && (
+                        {requiredRatio > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Recommended (180%)</span>
+                            <span className="font-medium">{recommendedReq.toFixed(4)} SUI</span>
+                          </div>
+                        )}
+                        {!hasEnough && requiredRatio > 0 && (
                           <p className="text-xs text-red-500 mt-2">
                             ⚠️ Insufficient collateral. Deposit more to proceed.
                           </p>

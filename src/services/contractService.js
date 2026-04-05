@@ -344,12 +344,13 @@ export const DePINService = {
     // Split coins for funding - use tx.gas as the source
     const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(amountInMist)]);
     
-    // Call fund_project with the project object and coin
+    // Call fund_project with the project object, coin, clock, and ctx
     tx.moveCall({
       target: `${SUI_PACKAGE_ID}::depin::fund_project`,
       arguments: [
         tx.object(projectObjectId), // Shared DePIN project object
         coin,                        // Coin<SUI> payment
+        tx.object('0x6'),           // Clock object (shared object at 0x6)
       ],
     });
     

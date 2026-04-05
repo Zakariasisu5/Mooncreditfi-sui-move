@@ -92,7 +92,7 @@ const Whitepaper = () => {
             />
             <ProblemCard
               title="Over-Collateralization in DeFi"
-              description="Current DeFi lending requires 150-200% collateralization, making it inaccessible for most users and inefficient for capital deployment."
+              description="Traditional DeFi lending requires 150-200% collateralization. MoonCreditFi solves this with credit-based lending: users with high credit scores (750+) can borrow with zero collateral, while others enjoy reduced requirements (25-100%) based on their on-chain reputation."
             />
             <ProblemCard
               title="Infrastructure Funding Gap"
