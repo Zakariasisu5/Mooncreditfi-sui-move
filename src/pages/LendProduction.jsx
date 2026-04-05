@@ -18,8 +18,9 @@ import { DollarSign, TrendingUp, Wallet, Gift, Loader2, ExternalLink, RefreshCw,
 import { motion } from 'framer-motion';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { useSecureTransaction } from '@/hooks/useSecureTransaction';
-import { useLendingPool, useUserBalance, useUserDeposits, useInvalidateQueries } from '@/hooks/useContractData';
-import { LendingPoolService, ValidationService, ErrorService } from '@/services/contractService';
+import { useLendingPool, useUserBalance, useUserDeposits, useInvalidateQueries, useCollateralVault } from '@/hooks/useContractData';
+import { LendingPoolService, ValidationService, ErrorService, CollateralService } from '@/services/contractService';
+import { CollateralVaultDataService } from '@/services/dataService';
 import { EXPLORER_URL } from '@/config/sui';
 
 const LendProduction = () => {
@@ -33,10 +34,13 @@ const LendProduction = () => {
   const { data: pool, isLoading: isLoadingPool, error: poolError } = useLendingPool();
   const { data: balance, isLoading: isLoadingBalance } = useUserBalance();
   const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
+  const { data: vault, isLoading: isLoadingVault } = useCollateralVault();
   const { invalidateAll } = useInvalidateQueries();
 
   // SECURITY: Use secure transaction execution
   const { executeSecureTransaction, lastDigest, isPending, isConfirming } = useSecureTransaction();
+
+  const hasVault = !!vault;
 
   // Real user position data from blockchain events
   const depositedBalance = userDeposits?.netDeposited || 0;
@@ -48,32 +52,86 @@ const LendProduction = () => {
       return;
     }
 
-    try {
-      // Create transaction
-      const tx = LendingPoolService.createDepositTransaction(depositAmount);
+    const depositAmountNum = parseFloat(depositAmount);
+    if (!depositAmountNum || depositAmountNum <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
 
-      // SECURITY: Execute with comprehensive validation
-      await executeSecureTransaction(tx, {
+    try {
+      // Step 1: Create vault if needed (for collateral)
+      if (!hasVault) {
+        toast.info('Creating collateral vault...');
+        const createVaultTx = CollateralService.createVaultTransaction();
+        await executeSecureTransaction(createVaultTx, {
+          type: 'createVault',
+          validationParams: {},
+          onSuccess: () => {
+            toast.success('Vault created!');
+          },
+          onError: (error) => {
+            const friendlyError = ErrorService.getUserFriendlyError(error);
+            toast.error(`Failed to create vault: ${friendlyError.message}`);
+            throw error;
+          },
+        });
+        // Wait for vault creation
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        await invalidateAll();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      // Refetch vault to get object ID
+      const vaultData = hasVault ? vault : await CollateralVaultDataService.fetchCollateralVault(account.address);
+      
+      if (!vaultData) {
+        toast.error('Failed to fetch vault. Please try again.');
+        return;
+      }
+
+      // Step 2: Deposit to lending pool
+      toast.info('Depositing to lending pool...');
+      const depositTx = LendingPoolService.createDepositTransaction(depositAmountNum);
+      await executeSecureTransaction(depositTx, {
         type: 'deposit',
         validationParams: {
-          amount: depositAmount,
+          amount: depositAmountNum,
           balance,
         },
-        onSuccess: (digest) => {
-          toast.success('Deposit successful!');
-          addNotification(`Deposited ${depositAmount} SUI to lending pool`, 'success');
-          setDepositAmount('');
-          // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 2000);
+        onSuccess: () => {
+          toast.success(`Deposited ${depositAmountNum} SUI to lending pool`);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
+          throw error;
+        },
+      });
+
+      // Wait for deposit to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Step 3: Also deposit to collateral vault (same amount)
+      toast.info('Adding to collateral...');
+      const collateralTx = CollateralService.depositCollateralTransaction(vaultData.objectId, depositAmountNum);
+      await executeSecureTransaction(collateralTx, {
+        type: 'depositCollateral',
+        validationParams: { amount: depositAmountNum },
+        onSuccess: (digest) => {
+          toast.success(`Successfully deposited ${depositAmountNum} SUI! (Available for lending & borrowing)`);
+          addNotification(`Deposited ${depositAmountNum} SUI`, 'success');
+          setDepositAmount('');
+          setTimeout(() => invalidateAll(), 2000);
+        },
+        onError: (error) => {
+          const friendlyError = ErrorService.getUserFriendlyError(error);
+          toast.error(`Lending pool deposit succeeded, but collateral deposit failed: ${friendlyError.message}`);
+          setDepositAmount('');
+          setTimeout(() => invalidateAll(), 2000);
         },
       });
     } catch (error) {
-      // Error already handled by secure transaction hook
-      console.error('Deposit error:', error);
+      console.error('Deposit flow error:', error);
     }
   };
 
