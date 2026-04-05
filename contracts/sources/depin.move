@@ -6,6 +6,14 @@ module mooncreditfi::depin {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::event;
+    use sui::clock::{Self, Clock};
+    use sui::balance::{Self, Balance};
+
+    const EExceedsFundingTarget: u64 = 1;
+    const EProjectNotActive: u64 = 2;
+    const ENotOwner: u64 = 3;
+    const ENotMatured: u64 = 4;
+    const EInsufficientTreasury: u64 = 5;
 
     public struct DepinProject has key, store {
         id: UID,
@@ -15,6 +23,7 @@ module mooncreditfi::depin {
         current_amount: u64,
         apy: u64,
         is_active: bool,
+        treasury_balance: Balance<SUI>,
     }
 
     public struct DepinNFT has key, store {
@@ -23,6 +32,9 @@ module mooncreditfi::depin {
         investor: address,
         amount: u64,
         timestamp: u64,
+        accumulated_yield: u64,
+        last_yield_claim: u64,
+        maturity_date: u64,
     }
     public struct ProjectCreated has copy, drop {
         project_id: address,
@@ -44,12 +56,33 @@ module mooncreditfi::depin {
         from: address,
         to: address,
     }
+    
+    public struct ProjectClosed has copy, drop {
+        project_id: address,
+        final_amount: u64,
+    }
+    
+    public struct YieldClaimed has copy, drop {
+        nft_id: address,
+        investor: address,
+        yield_amount: u64,
+        timestamp: u64,
+    }
+    
+    public struct NFTRedeemed has copy, drop {
+        nft_id: address,
+        investor: address,
+        principal: u64,
+        final_yield: u64,
+        total_return: u64,
+    }
 
     public entry fun create_project(
         name: vector<u8>,
         description: vector<u8>,
         target_amount: u64,
         apy: u64,
+        clock: &Clock,
         ctx: &mut TxContext
     ) {
         let uid = object::new(ctx);
@@ -64,6 +97,7 @@ module mooncreditfi::depin {
             current_amount: 0,
             apy,
             is_active: true,
+            treasury_balance: balance::zero(),
         };
 
         event::emit(ProjectCreated { project_id, name: name_str, target_amount, apy });
@@ -72,24 +106,46 @@ module mooncreditfi::depin {
     public entry fun fund_project(
         project: &mut DepinProject,
         payment: Coin<SUI>,
+        clock: &Clock,
         ctx: &mut TxContext
     ) {
         let amount = coin::value(&payment);
         let investor = tx_context::sender(ctx);
         let project_id = object::uid_to_address(&project.id);
+        let current_time = clock::timestamp_ms(clock);
+
+        assert!(project.is_active, EProjectNotActive);
+        
+        let remaining_capacity = project.target_amount - project.current_amount;
+        assert!(amount <= remaining_capacity, EExceedsFundingTarget);
 
         project.current_amount = project.current_amount + amount;
-        transfer::public_transfer(payment, @mooncreditfi);
+        
+        if (project.current_amount >= project.target_amount) {
+            project.is_active = false;
+            event::emit(ProjectClosed {
+                project_id,
+                final_amount: project.current_amount,
+            });
+        };
+        
+        let payment_balance = coin::into_balance(payment);
+        balance::join(&mut project.treasury_balance, payment_balance);
 
         let nft_uid = object::new(ctx);
         let nft_id = object::uid_to_address(&nft_uid);
+        
+        let maturity_date = current_time + 31536000000; // 365 days in milliseconds
         
         let nft = DepinNFT {
             id: nft_uid,
             project_id,
             investor,
             amount,
-            timestamp: tx_context::epoch(ctx),
+            timestamp: current_time,
+            accumulated_yield: 0,
+            last_yield_claim: current_time,
+            maturity_date,
         };
 
         event::emit(ProjectFunded {
@@ -108,14 +164,119 @@ module mooncreditfi::depin {
         event::emit(NFTTransferred { nft_id, from: sender, to: recipient });
         transfer::transfer(nft, recipient);
     }
+    
+    public fun calculate_pending_yield(
+        nft: &DepinNFT,
+        project: &DepinProject,
+        clock: &Clock
+    ): u64 {
+        let current_time = clock::timestamp_ms(clock);
+        let time_elapsed = current_time - nft.last_yield_claim;
+        
+        // Calculate yield: (principal * APY * time_elapsed) / (365 days in ms * 10000 basis points)
+        // APY is in basis points (e.g., 1000 = 10%)
+        (nft.amount * project.apy * time_elapsed) / (365 * 86400000 * 10000)
+    }
+    
+    public entry fun claim_yield(
+        project: &mut DepinProject,
+        nft: &mut DepinNFT,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let investor = tx_context::sender(ctx);
+        let nft_id = object::uid_to_address(&nft.id);
+        let current_time = clock::timestamp_ms(clock);
+        
+        // Verify ownership
+        assert!(nft.investor == investor, ENotOwner);
+        
+        // Calculate pending yield
+        let yield_amount = calculate_pending_yield(nft, project, clock);
+        
+        // Ensure treasury has sufficient balance
+        assert!(balance::value(&project.treasury_balance) >= yield_amount, EInsufficientTreasury);
+        
+        // Transfer yield to investor
+        let yield_balance = balance::split(&mut project.treasury_balance, yield_amount);
+        let yield_coin = coin::from_balance(yield_balance, ctx);
+        transfer::public_transfer(yield_coin, investor);
+        
+        // Update NFT state
+        nft.accumulated_yield = nft.accumulated_yield + yield_amount;
+        nft.last_yield_claim = current_time;
+        
+        event::emit(YieldClaimed {
+            nft_id,
+            investor,
+            yield_amount,
+            timestamp: current_time,
+        });
+    }
+    
+    public entry fun redeem_at_maturity(
+        project: &mut DepinProject,
+        nft: DepinNFT,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let investor = tx_context::sender(ctx);
+        let current_time = clock::timestamp_ms(clock);
+        
+        // Verify ownership
+        assert!(nft.investor == investor, ENotOwner);
+        
+        // Verify maturity
+        assert!(current_time >= nft.maturity_date, ENotMatured);
+        
+        // Calculate final yield
+        let final_yield = calculate_pending_yield(&nft, project, clock);
+        let total_return = nft.amount + final_yield;
+        
+        // Ensure treasury has sufficient balance
+        assert!(balance::value(&project.treasury_balance) >= total_return, EInsufficientTreasury);
+        
+        // Transfer principal + yield to investor
+        let return_balance = balance::split(&mut project.treasury_balance, total_return);
+        let return_coin = coin::from_balance(return_balance, ctx);
+        transfer::public_transfer(return_coin, investor);
+        
+        let nft_id = object::uid_to_address(&nft.id);
+        event::emit(NFTRedeemed {
+            nft_id,
+            investor,
+            principal: nft.amount,
+            final_yield,
+            total_return,
+        });
+        
+        // Burn NFT
+        let DepinNFT { 
+            id, 
+            project_id: _, 
+            investor: _, 
+            amount: _, 
+            timestamp: _, 
+            accumulated_yield: _, 
+            last_yield_claim: _, 
+            maturity_date: _ 
+        } = nft;
+        object::delete(id);
+    }
+    
     public fun get_project_name(project: &DepinProject): &String { &project.name }
     public fun get_project_description(project: &DepinProject): &String { &project.description }
     public fun get_project_target(project: &DepinProject): u64 { project.target_amount }
     public fun get_project_current(project: &DepinProject): u64 { project.current_amount }
     public fun get_project_apy(project: &DepinProject): u64 { project.apy }
     public fun is_project_active(project: &DepinProject): bool { project.is_active }
+    public fun get_treasury_balance(project: &DepinProject): u64 { balance::value(&project.treasury_balance) }
+    
     public fun get_nft_project_id(nft: &DepinNFT): address { nft.project_id }
     public fun get_nft_investor(nft: &DepinNFT): address { nft.investor }
     public fun get_nft_amount(nft: &DepinNFT): u64 { nft.amount }
     public fun get_nft_timestamp(nft: &DepinNFT): u64 { nft.timestamp }
+    public fun get_nft_accumulated_yield(nft: &DepinNFT): u64 { nft.accumulated_yield }
+    public fun get_nft_last_yield_claim(nft: &DepinNFT): u64 { nft.last_yield_claim }
+    public fun get_nft_maturity_date(nft: &DepinNFT): u64 { nft.maturity_date }
 }

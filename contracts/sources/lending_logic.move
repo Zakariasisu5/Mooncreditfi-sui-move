@@ -1,4 +1,5 @@
 module mooncreditfi::lending_logic {
+    use sui::coin::{Self, Coin};
     use sui::sui::SUI;
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
@@ -7,11 +8,8 @@ module mooncreditfi::lending_logic {
     use mooncreditfi::credit_profile::{Self, CreditProfile};
     use mooncreditfi::lending_pool::{Self, LendingPool};
     use mooncreditfi::loan::{Self, Loan};
-    use mooncreditfi::credit_scoring;
+    use mooncreditfi::collateral::{Self, CollateralVault};
 
-    /// Error codes
-    /// Error codes
-    const EInsufficientLiquidity: u64 = 1;
     const EInsufficientLiquidity: u64 = 1;
     const EExceedsMaxBorrowLimit: u64 = 2;
     const ECreditScoreTooLow: u64 = 3;
@@ -19,10 +17,19 @@ module mooncreditfi::lending_logic {
     const ENoDebt: u64 = 5;
     const EUnderflowPrevention: u64 = 6;
     const EInvalidLoanDuration: u64 = 7;
+    const ELoanTooSmall: u64 = 8;
+    const ELoanCooldownActive: u64 = 9;
+    const EInsufficientCollateral: u64 = 10;
+    
+    // Prevent credit score farming
+    const MIN_LOAN_SIZE: u64 = 1_000_000_000; // 1 SUI minimum
+    const LOAN_COOLDOWN_MS: u64 = 86400000; // 24 hours (prevents rapid small loans)
+    
     const MIN_CREDIT_SCORE: u64 = 500;
     const LOAN_DURATION_30: u64 = 30;
     const LOAN_DURATION_60: u64 = 60;
     const LOAN_DURATION_90: u64 = 90;
+
     public struct DepositEvent has copy, drop {
         depositor: address,
         amount: u64,
@@ -45,75 +52,97 @@ module mooncreditfi::lending_logic {
         new_credit_score: u64,
     }
 
-    
-    /// - Safe balance operations
-    /// - Event logging for monitoring
     public entry fun deposit(
         pool: &mut LendingPool,
         payment: Coin<SUI>,
+        clock: &Clock,
         ctx: &mut TxContext
     ) {
         let sender = tx_context::sender(ctx);
         let amount = coin::value(&payment);
+        
+        // Accrue yield before modifying position
+        lending_pool::accrue_yield(pool, sender, clock);
+        
         let coin_balance = coin::into_balance(payment);
         lending_pool::add_liquidity(pool, coin_balance);
+        
+        // Update or create user position after deposit
+        lending_pool::update_user_position_on_deposit(pool, sender, amount, clock);
+        
         event::emit(DepositEvent { depositor: sender, amount });
-    }       amount,
-        });
     }
 
-    /// Withdraw from lending pool (UI-callable)
-    /// 
-    /// SECURITY HARDENING:
-    /// - Amount validation (non-zero, within limits)
-    /// - Liquidity check
-    /// - Safe balance operations
     public entry fun withdraw(
         pool: &mut LendingPool,
         amount: u64,
+        clock: &Clock,
         ctx: &mut TxContext
     ) {
         let sender = tx_context::sender(ctx);
+        
+        // Accrue yield before modifying position
+        lending_pool::accrue_yield(pool, sender, clock);
+        
+        // Check user authorization BEFORE removing liquidity
+        // This prevents unauthorized withdrawals
+        lending_pool::validate_withdrawal_authorization(pool, sender, amount);
+        
+        // Check if full withdrawal and get yield info
+        let (should_claim_yield, yield_amount) = 
+            lending_pool::check_full_withdrawal(pool, sender, amount);
+        
+        // Remove liquidity (now safe after authorization check)
         let withdrawn_balance = lending_pool::remove_liquidity(pool, amount);
-        let withdrawn_coin = coin::from_balance(withdrawn_balance, ctx);
+        let mut withdrawn_coin = coin::from_balance(withdrawn_balance, ctx);
+        
+        // Handle full vs partial withdrawal
+        if (should_claim_yield) {
+            // Full withdrawal: claim yield and include in transferred amount
+            let yield_balance = lending_pool::claim_yield_internal(pool, sender);
+            let yield_coin = coin::from_balance(yield_balance, ctx);
+            coin::join(&mut withdrawn_coin, yield_coin);
+            
+            // Remove user position from table
+            lending_pool::remove_user_position(pool, sender);
+            
+            // Emit YieldClaimEvent for automatic yield claim
+            if (yield_amount > 0) {
+                lending_pool::emit_yield_claim_event(sender, yield_amount, clock);
+            };
+        } else {
+            // Partial withdrawal: update position with reduced principal
+            lending_pool::update_user_position_on_withdraw(pool, sender, amount);
+        };
+        
         transfer::public_transfer(withdrawn_coin, sender);
         event::emit(WithdrawEvent { withdrawer: sender, amount });
-    }   transfer::public_transfer(withdrawn_coin, sender);
-        
-        // Emit event for security monitoring
-        event::emit(WithdrawEvent {
-            withdrawer: sender,
-            amount,
-        });
     }
-    /// Borrow from the lending pool with loan creation (UI-callable)
-    /// Creates an individual Loan object and transfers borrowed funds
-    /// duration_days: 30, 60, or 90 days
-    /// 
+
     public entry fun borrow(
+        pool: &mut LendingPool,
+        profile: &mut CreditProfile,
+        vault: &mut CollateralVault,
+        amount: u64,
+        duration_days: u64,
         clock: &Clock,
         ctx: &mut TxContext
     ) {
         let sender = tx_context::sender(ctx);
         let current_time = clock::timestamp_ms(clock);
         
-        // SECURITY: Verify ownership - CRITICAL
         assert!(credit_profile::get_owner(profile) == sender, ENotOwner);
-
-        // SECURITY: Validate amount is non-zero
-        assert!(amount > 0, 8); // EZeroAmount
-
-        // SECURITY: Validate loan duration (only 30, 60, or 90 days allowed)
-        assert!(
-            duration_days == LOAN_DURATION_30 || 
-            duration_days == LOAN_DURATION_60 || 
-            duration_days == LOAN_DURATION_90,
-            EInvalidLoanDuration
-        let sender = tx_context::sender(ctx);
-        let current_time = clock::timestamp_ms(clock);
+        assert!(collateral::get_owner(vault) == sender, ENotOwner);
         
-        assert!(credit_profile::get_owner(profile) == sender, ENotOwner);
-        assert!(amount > 0, 8);
+        // Enforce minimum loan size to prevent farming
+        assert!(amount >= MIN_LOAN_SIZE, ELoanTooSmall);
+        
+        // Enforce cooldown between loans
+        let last_loan_time = credit_profile::get_last_loan_time(profile);
+        if (last_loan_time > 0) {
+            assert!(current_time >= last_loan_time + LOAN_COOLDOWN_MS, ELoanCooldownActive);
+        };
+        
         assert!(
             duration_days == LOAN_DURATION_30 || 
             duration_days == LOAN_DURATION_60 || 
@@ -130,18 +159,32 @@ module mooncreditfi::lending_logic {
 
         let liquidity = lending_pool::get_total_liquidity(pool);
         assert!(liquidity >= amount, EInsufficientLiquidity);
+        
+        // Check collateral is sufficient
+        assert!(collateral::check_collateral_sufficient(vault, amount), EInsufficientCollateral);
 
         let interest_rate = credit_profile::calculate_interest_rate(profile);
         let loan = loan::create_loan(sender, amount, interest_rate, duration_days, clock, ctx);
         let total_owed = loan::get_total_owed(&loan);
+        let loan_id = loan::get_loan_id(&loan);  // Get loan ID before transfer
 
         credit_profile::record_borrow(profile, total_owed, current_time);
+        credit_profile::add_loan_to_profile(profile, loan_id);
+        collateral::record_borrow(vault, total_owed);
+        
         let borrowed_balance = lending_pool::record_borrow(pool, amount);
         let borrowed_coin = coin::from_balance(borrowed_balance, ctx);
         transfer::public_transfer(borrowed_coin, sender);
         transfer::public_transfer(loan, sender);
 
-        event::emit(BorrowEvent { borrower: sender, amount, credit_score: score });n: &mut Loan,
+        event::emit(BorrowEvent { borrower: sender, amount, credit_score: score });
+    }
+
+    public entry fun repay(
+        pool: &mut LendingPool,
+        profile: &mut CreditProfile,
+        vault: &mut CollateralVault,
+        loan: &mut Loan,
         payment: Coin<SUI>,
         clock: &Clock,
         ctx: &mut TxContext
@@ -149,56 +192,9 @@ module mooncreditfi::lending_logic {
         let sender = tx_context::sender(ctx);
         let current_time = clock::timestamp_ms(clock);
         
-        // SECURITY: Verify ownership - CRITICAL (both profile and loan)
         assert!(credit_profile::get_owner(profile) == sender, ENotOwner);
         assert!(loan::get_borrower(loan) == sender, ENotOwner);
-
-        // Get payment amount and loan details
-        let amount = coin::value(&payment);
-        let remaining_loan = loan::get_remaining_amount(loan);
-        
-        // SECURITY: Validate amount is non-zero
-        assert!(amount > 0, 8); // EZeroAmount
-        
-        // SECURITY: User must have outstanding loan amount (prevent double repayment)
-        assert!(remaining_loan > 0, ENoDebt);
-        
-        // SECURITY: Verify loan is not already fully repaid (immutable state check)
-        assert!(!loan::is_repaid(loan), 9); // ELoanAlreadyRepaid
-
-        // Check if this is early repayment
-        // Check if this is early repayment
-        let is_early = loan::is_early_repayment(loan, clock);
-        let is_overdue = loan::is_overdue(loan, clock);
-
-        // Record payment in loan (SECURITY: loan module enforces immutable repayment state)
-        let (amount_applied, is_fully_repaid) = loan::record_payment(loan, amount, ctx);
-
-        // Update profile based on repayment type and timing
-        if (is_fully_repaid) {
-            if (is_overdue) {
-    public entry fun repay(ile::record_late_repayment(profile, amount_applied, current_time);
-            } else {
-                credit_profile::record_partial_repayment(profile, amount_applied, current_time);
-    /// Mark loan as defaulted (can be called by anyone after due date)
-    /// 
-    /// SECURITY HARDENING:
-    /// - Time-based validation (must be overdue)
-    /// - Prevents marking repaid loans as defaulted
-    /// - Event logging for monitoring
-    public entry fun mark_loan_default(
-        profile: &mut CreditProfile,
-        loan: &mut Loan,
-        clock: &Clock,
-        _ctx: &mut TxContext
-    ) {
-        // SECURITY: Check if loan is overdue (time-based validation)
-        assert!(loan::is_overdue(loan, clock), 10); // ELoanNotOverdue
-        let sender = tx_context::sender(ctx);
-        let current_time = clock::timestamp_ms(clock);
-        
-        assert!(credit_profile::get_owner(profile) == sender, ENotOwner);
-        assert!(loan::get_borrower(loan) == sender, ENotOwner);
+        assert!(collateral::get_owner(vault) == sender, ENotOwner);
 
         let amount = coin::value(&payment);
         let remaining_loan = loan::get_remaining_amount(loan);
@@ -209,9 +205,13 @@ module mooncreditfi::lending_logic {
 
         let is_early = loan::is_early_repayment(loan, clock);
         let is_overdue = loan::is_overdue(loan, clock);
-        let (amount_applied, is_fully_repaid) = loan::record_payment(loan, amount, ctx);
+        let loan_id = loan::get_loan_id(loan);
+        let (amount_applied, is_fully_repaid) = loan::record_payment(loan, amount, clock, ctx);
 
         if (is_fully_repaid) {
+            // Remove loan from active loans when fully repaid
+            credit_profile::remove_loan_from_profile(profile, loan_id);
+            
             if (is_overdue) {
                 credit_profile::record_late_repayment(profile, amount_applied, current_time);
             } else {
@@ -224,6 +224,9 @@ module mooncreditfi::lending_logic {
                 credit_profile::record_partial_repayment(profile, amount_applied, current_time);
             };
         };
+        
+        // Record repayment in collateral vault
+        collateral::record_repayment(vault, amount_applied);
 
         let current_borrowed = lending_pool::get_total_borrowed(pool);
         assert!(current_borrowed >= amount_applied, EUnderflowPrevention);
@@ -232,7 +235,10 @@ module mooncreditfi::lending_logic {
         lending_pool::record_repayment(pool, payment_balance, amount_applied);
         let new_score = credit_profile::get_score(profile);
 
-        event::emit(RepayEvent { borrower: sender, amount, new_credit_score: new_score });    public entry fun mark_loan_default(
+        event::emit(RepayEvent { borrower: sender, amount, new_credit_score: new_score });
+    }
+
+    public entry fun mark_loan_default(
         profile: &mut CreditProfile,
         loan: &mut Loan,
         clock: &Clock,
@@ -241,6 +247,7 @@ module mooncreditfi::lending_logic {
         assert!(loan::is_overdue(loan, clock), 0);
         let _borrower = loan::get_borrower(loan);
         let current_time = clock::timestamp_ms(clock);
-        loan::mark_defaulted(loan);
+        loan::mark_defaulted(loan, clock);
         credit_profile::record_default(profile, current_time);
     }
+}

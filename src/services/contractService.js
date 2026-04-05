@@ -15,6 +15,7 @@ import {
   LENDING_POOL_OBJECT_ID,
   CREDIT_PROFILE_OBJECT_ID,
   DEPIN_FINANCE_OBJECT_ID,
+  PROFILE_REGISTRY_OBJECT_ID,
 } from '@/config/sui';
 import { InputValidator } from '@/utils/securityValidation';
 
@@ -73,6 +74,7 @@ export const LendingPoolService = {
       arguments: [
         tx.object(LENDING_POOL_OBJECT_ID),
         coin,
+        tx.object('0x6'), // Clock object (shared object at 0x6)
       ],
     });
     
@@ -93,6 +95,7 @@ export const LendingPoolService = {
       arguments: [
         tx.object(LENDING_POOL_OBJECT_ID),
         tx.pure.u64(amountInMist),
+        tx.object('0x6'), // Clock object (shared object at 0x6)
       ],
     });
     
@@ -113,7 +116,92 @@ export const CreditProfileService = {
     
     tx.moveCall({
       target: `${SUI_PACKAGE_ID}::credit_profile::create_profile`,
+      arguments: [
+        tx.object(PROFILE_REGISTRY_OBJECT_ID), // ProfileRegistry shared object
+      ],
+    });
+    
+    return tx;
+  },
+};
+
+/**
+ * Collateral Vault Transactions
+ */
+export const CollateralService = {
+  /**
+   * Create a new collateral vault
+   * @returns {Transaction}
+   */
+  createVaultTransaction: () => {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::collateral::create_vault`,
       arguments: [],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Deposit collateral into vault
+   * @param {string} vaultObjectId - Collateral vault object ID
+   * @param {number} amountInSui - Amount to deposit in SUI
+   * @returns {Transaction}
+   */
+  depositCollateralTransaction: (vaultObjectId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    // Split coins for collateral deposit
+    const [coin] = tx.splitCoins(tx.gas, [amountInMist]);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::collateral::deposit_collateral`,
+      arguments: [
+        tx.object(vaultObjectId),
+        coin,
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Withdraw collateral from vault (only if no active loans)
+   * @param {string} vaultObjectId - Collateral vault object ID
+   * @param {number} amountInSui - Amount to withdraw in SUI
+   * @returns {Transaction}
+   */
+  withdrawCollateralTransaction: (vaultObjectId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::collateral::withdraw_collateral`,
+      arguments: [
+        tx.object(vaultObjectId),
+        tx.pure.u64(amountInMist),
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Liquidate an underwater collateral position
+   * @param {string} vaultObjectId - Collateral vault object ID to liquidate
+   * @returns {Transaction}
+   */
+  liquidateVaultTransaction: (vaultObjectId) => {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::collateral::liquidate`,
+      arguments: [
+        tx.object(vaultObjectId),
+      ],
     });
     
     return tx;
@@ -126,12 +214,24 @@ export const CreditProfileService = {
 export const BorrowingService = {
   /**
    * Create a borrow transaction with loan duration
+   * 
+   * IMPORTANT: This function requires a CollateralVault to be created first.
+   * Users must:
+   * 1. Create a vault using CollateralService.createVaultTransaction()
+   * 2. Deposit collateral using CollateralService.depositCollateralTransaction()
+   * 3. Then call this function with the vault object ID
+   * 
    * @param {string} profileObjectId - Credit profile object ID
+   * @param {string} vaultObjectId - Collateral vault object ID (REQUIRED - must be created first)
    * @param {number} amountInSui - Amount to borrow in SUI
    * @param {number} durationDays - Loan duration (30, 60, or 90 days)
    * @returns {Transaction}
    */
-  createBorrowTransaction: (profileObjectId, amountInSui, durationDays = 30) => {
+  createBorrowTransaction: (profileObjectId, vaultObjectId, amountInSui, durationDays = 30) => {
+    if (!vaultObjectId) {
+      throw new Error('Collateral vault is required. Please create a vault and deposit collateral first.');
+    }
+    
     const tx = new Transaction();
     const amountInMist = suiToMist(amountInSui);
     
@@ -140,6 +240,7 @@ export const BorrowingService = {
       arguments: [
         tx.object(LENDING_POOL_OBJECT_ID),
         tx.object(profileObjectId),
+        tx.object(vaultObjectId),
         tx.pure.u64(amountInMist),
         tx.pure.u64(durationDays),
         tx.object('0x6'), // Clock object (shared object at 0x6)
@@ -152,11 +253,12 @@ export const BorrowingService = {
   /**
    * Create a repay transaction for a specific loan
    * @param {string} profileObjectId - Credit profile object ID
+   * @param {string} vaultObjectId - Collateral vault object ID
    * @param {string} loanObjectId - Loan object ID to repay
    * @param {number} amountInSui - Amount to repay in SUI
    * @returns {Transaction}
    */
-  createRepayTransaction: (profileObjectId, loanObjectId, amountInSui) => {
+  createRepayTransaction: (profileObjectId, vaultObjectId, loanObjectId, amountInSui) => {
     const tx = new Transaction();
     const amountInMist = suiToMist(amountInSui);
     
@@ -168,6 +270,7 @@ export const BorrowingService = {
       arguments: [
         tx.object(LENDING_POOL_OBJECT_ID),
         tx.object(profileObjectId),
+        tx.object(vaultObjectId),
         tx.object(loanObjectId),
         coin,
         tx.object('0x6'), // Clock object (shared object at 0x6)
@@ -410,6 +513,7 @@ export const ErrorService = {
 export default {
   LendingPoolService,
   CreditProfileService,
+  CollateralService,
   BorrowingService,
   DePINService,
   ValidationService,

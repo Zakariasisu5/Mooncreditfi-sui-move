@@ -1,13 +1,15 @@
 # MoonCreditFi Object Initialization Script (PowerShell)
 $ErrorActionPreference = "Stop"
 
-$PACKAGE_ID = "0x8853e2763099cbbd1fd5281a9823d8d76d8423a89fb8068d7c21bd4f06118088"
+$PACKAGE_ID = "0x317ea964960bd871b9a7b8b13a84080f64571966ac25517956fe9e2f2beab6b3"
+$PROFILE_REGISTRY_ID = "0x50b5c51c42dd7460ac532d67faac95945f8fb0b163397a1ab2d65f106019ec08"
 $DEPLOYER_ADDRESS = "0x1b5f1da225b2ead0d8ed23c70bcbe78f872756953870a3429c7f347a239c1160"
 
 Write-Host "MoonCreditFi Object Initialization"
 Write-Host "======================================"
 Write-Host ""
 Write-Host "Package ID: $PACKAGE_ID"
+Write-Host "Profile Registry ID: $PROFILE_REGISTRY_ID"
 Write-Host "Network: Sui Testnet"
 Write-Host ""
 
@@ -17,7 +19,6 @@ try {
     Write-Host "Sui CLI found"
 } catch {
     Write-Host "Error: Sui CLI not found. Please install it first."
-    Write-Host "Run: cargo install --locked --git https://github.com/MystenLabs/sui.git --branch testnet sui"
     exit 1
 }
 
@@ -34,13 +35,14 @@ Write-Host ""
 
 # Step 1: Create Lending Pool
 Write-Host "Step 1: Creating Lending Pool..."
-Write-Host "Interest Rate: 5 percent (500 basis points)"
+Write-Host "Interest Rate: 5% (500 basis points)"
+Write-Host "APY: 8% (800 basis points)"
 Write-Host ""
 
 try {
-    $poolOutput = sui client call --package $PACKAGE_ID --module lending_pool --function create_pool --args 500 --gas-budget 10000000 --json 2>&1 | ConvertFrom-Json
+    $poolOutput = sui client call --package $PACKAGE_ID --module lending_pool --function create_pool --args 500 800 --gas-budget 50000000 --json 2>&1 | ConvertFrom-Json
     
-    $poolId = ($poolOutput.objectChanges | Where-Object { $_.type -eq "created" } | Select-Object -First 1).objectId
+    re-Object { $_.type -eq "created" -and $_.objectType -like "*lending_pool::LendingPool" } | Select-Object -First 1).objectId
     
     Write-Host "Lending Pool created!"
     Write-Host "Object ID: $poolId"
@@ -57,9 +59,9 @@ Write-Host "Owner: $DEPLOYER_ADDRESS"
 Write-Host ""
 
 try {
-    $profileOutput = sui client call --package $PACKAGE_ID --module credit_profile --function create_profile --gas-budget 10000000 --json 2>&1 | ConvertFrom-Json
+    $$PACKAGE_ID --module credit_profile --function create_profile --args $PROFILE_REGISTRY_ID --gas-budget 50000000 --json 2>&1 | ConvertFrom-Json
     
-    $profileId = ($profileOutput.objectChanges | Where-Object { $_.type -eq "created" } | Select-Object -First 1).objectId
+    $profileId = ($profileOutput.objectChanges | Where-Object { $_.type -eq "created" -and $_.objectType -like "*credit_profile::CreditProfile" } | Select-Object -First 1).objectId
     
     Write-Host "Credit Profile created!"
     Write-Host "Object ID: $profileId"
@@ -70,47 +72,66 @@ try {
     exit 1
 }
 
-# Step 3: Create DePIN Project
-Write-Host "Step 3: Creating DePIN Project..."
-Write-Host "Name: Solar Farm Network"
-Write-Host "Target: 1000 SUI"
-Write-Host "APY: 8 percent"
+# Step 3: Create DePIN Projects
+Write-Host "Step 3: Creating DePIN Projects..."
 Write-Host ""
 
+$depinProjects = @()
+
+# Project 1: Solar Farm Network
+Write-Host "Creating: Solar Farm Network..."
 try {
-    $depinOutput = sui client call --package $PACKAGE_ID --module depin --function create_project --args "Solar Farm Network" "Decentralized solar energy infrastructure" 1000000000000 800 --gas-budget 10000000 --json 2>&1 | ConvertFrom-Json
+    $depin1Output = sui client call --package $PACKAGE_ID --module depin --function create_project --args "Solar Farm Network" "Decentralized solar energy infrastructure" 1000000000000 800 "0x6" --gas-budget 50000000 --json 2>&1 | ConvertFrom-Json
     
-    $depinId = ($depinOutput.objectChanges | Where-Object { $_.type -eq "created" } | Select-Object -First 1).objectId
+    bjectChanges | Where-Object { $_.type -eq "created" -and $_.objectType -like "*depin::DepinProject" } | Select-Object -First 1).objectId
     
-    Write-Host "DePIN Project created!"
-    Write-Host "Object ID: $depinId"
-    Write-Host ""
+    $depinProjects += @{ name = "Solar Farm Network"; id = $depin1Id; category = "Solar" }
+    Write-Host "Solar Farm Network created: $depin1Id"
 } catch {
-    Write-Host "Failed to create DePIN project"
+    Write-Host "Failed to create Solar Farm Network"
     Write-Host $_.Exception.Message
-    exit 1
 }
+
+# Project 2: 5G Network Infrastructure
+Write-Host "Creating: 5G Network Infrastructure..."
+try {
+    $lient call --package $PACKAGE_ID --module depin --function create_project --args "5G Network Infrastructure" "Next-generation mobile network deployment" 2000000000000 750 "0x6" --gas-budget 50000000 --json 2>&1 | ConvertFrom-Json
+    
+    $depin2Id = ($depin2Output.objectChanges | Where-Object { $_.type -eq "created" -and $_.objectType -like "*depin::DepinProject" } | Select-Object -First 1).objectId
+    
+    $depinProjects += @{ name = "5G Network Infrastructure"; id = $depin2Id; category = "Telecom" }
+    Write-Host "5G Network Infrastructure created: $depin2Id"
+} catch {
+    Write-Host "Failed to create 5G Network Infrastructure"
+    Write-Host $_.Exception.Message
+}
+
+# Project 3: IoT Sensor Network
+Write-Host "Creating: IoT Sensor Network..."
+try {
+    $depin3Output = sui client call --package $PACKAGE_ID --module depin --function create_project --args "IoT Sensor Network" "Distributed IoT sensor infrastructure" 500000000000 900 "0x6" --gas-budget 50000000 --json 2>&1 | ConvertFrom-Json
+    
+    depin3Output.objectChanges | Where-Object { $_.type -eq "created" -and $_.objectType -like "*depin::DepinProject" } | Select-Object -First 1).objectId
+    
+    $depinProjects += @{ name = "IoT Sensor Network"; id = $depin3Id; category = "IoT" }
+    Write-Host "IoT Sensor Network created: $depin3Id"
+} catch {
+    Write-Host "Failed to create IoT Sensor Network"
+    Write-Host $_.Exception.Message
+}
+
+Write-Host ""
 
 # Summary
 Write-Host "======================================"
 Write-Host "Initialization Complete!"
 Write-Host "======================================"
 Write-Host ""
-Write-Host "Copy these values to src/config/sui.js:"
+Write-Host "LENDING_POOL_OBJECT_ID: $poolId"
+Write-Host "CREDIT_PROFILE_OBJECT_ID: $profileId"
 Write-Host ""
-Write-Host "export const SUI_PACKAGE_ID = '$PACKAGE_ID';"
-Write-Host "export const LENDING_POOL_OBJECT_ID = '$poolId';"
-Write-Host "export const CREDIT_PROFILE_OBJECT_ID = '$profileId';"
-Write-Host "export const DEPIN_FINANCE_OBJECT_ID = '$depinId';"
-Write-Host ""
-Write-Host "View on Explorer:"
-Write-Host "- Package: https://suiscan.xyz/testnet/object/$PACKAGE_ID"
-Write-Host "- Lending Pool: https://suiscan.xyz/testnet/object/$poolId"
-Write-Host "- Credit Profile: https://suiscan.xyz/testnet/object/$profileId"
-Write-Host "- DePIN Project: https://suiscan.xyz/testnet/object/$depinId"
-Write-Host ""
-Write-Host "Next steps:"
-Write-Host "1. Update src/config/sui.js with the object IDs above"
-Write-Host "2. Run: npm run dev"
-Write-Host "3. Open: http://localhost:5173"
+Write-Host "DEPIN_PROJECTS:"
+foreach ($project in $depinProjects) {
+    Write-Host "  $($project.category): $($project.id)"
+}
 Write-Host ""

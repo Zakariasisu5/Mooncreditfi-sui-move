@@ -3,28 +3,52 @@ module mooncreditfi::credit_profile {
     use sui::tx_context::{Self, TxContext};
     use sui::transfer;
     use sui::event;
+    use sui::table::{Self, Table};
+    use std::vector;
     use mooncreditfi::credit_scoring;
+
+    public struct ProfileRegistry has key {
+        id: UID,
+        profiles: Table<address, address>,  // user address -> profile_id mapping
+    }
 
     public struct CreditProfile has key, store {
         id: UID,
         owner: address,
         score: u64,
-        debt: u64,
+        debt: u64,  // DEPRECATED: Kept for backward compatibility, use active_loans instead
         total_borrowed: u64,
         total_repaid: u64,
         loan_count: u64,
         default_count: u64,
         repayment_history_count: u64,
         last_activity_time: u64,
+        last_loan_time: u64,
+        active_loans: vector<address>,
     }
+    
+    // Error codes
+    const EProfileAlreadyExists: u64 = 10;
+    
     public struct ProfileCreated has copy, drop {
         profile_id: address,
         owner: address,
         initial_score: u64,
     }
 
-    public entry fun create_profile(ctx: &mut TxContext) {
+    fun init(ctx: &mut TxContext) {
+        let registry = ProfileRegistry {
+            id: object::new(ctx),
+            profiles: table::new(ctx),
+        };
+        transfer::share_object(registry);
+    }
+
+    public entry fun create_profile(registry: &mut ProfileRegistry, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
+        
+        assert!(!table::contains(&registry.profiles, sender), EProfileAlreadyExists);
+        
         let uid = object::new(ctx);
         let profile_id = object::uid_to_address(&uid);
         
@@ -39,7 +63,12 @@ module mooncreditfi::credit_profile {
             default_count: 0,
             repayment_history_count: 0,
             last_activity_time: 0,
+            last_loan_time: 0,
+            active_loans: vector::empty(),
         };
+
+
+        table::add(&mut registry.profiles, sender, profile_id);
 
         event::emit(ProfileCreated {
             profile_id,
@@ -59,6 +88,11 @@ module mooncreditfi::credit_profile {
     public fun get_debt(profile: &CreditProfile): u64 { profile.debt }
     public fun get_repayment_history_count(profile: &CreditProfile): u64 { profile.repayment_history_count }
     public fun get_last_activity_time(profile: &CreditProfile): u64 { profile.last_activity_time }
+    
+    public fun get_last_loan_time(profile: &CreditProfile): u64 { profile.last_loan_time }
+    
+    public fun get_active_loans(profile: &CreditProfile): &vector<address> { &profile.active_loans }
+    
     public fun calculate_max_borrow_limit(profile: &CreditProfile): u64 {
         credit_scoring::calculate_max_borrow_limit(profile.score)
     }
@@ -80,6 +114,18 @@ module mooncreditfi::credit_profile {
         profile.total_borrowed = profile.total_borrowed + amount;
         profile.loan_count = profile.loan_count + 1;
         profile.last_activity_time = timestamp;
+        profile.last_loan_time = timestamp;
+    }
+    
+    public(package) fun add_loan_to_profile(profile: &mut CreditProfile, loan_id: address) {
+        vector::push_back(&mut profile.active_loans, loan_id);
+    }
+    
+    public(package) fun remove_loan_from_profile(profile: &mut CreditProfile, loan_id: address) {
+        let (found, index) = vector::index_of(&profile.active_loans, &loan_id);
+        if (found) {
+            vector::remove(&mut profile.active_loans, index);
+        };
     }
 
     public(package) fun record_full_repayment(
@@ -140,5 +186,13 @@ module mooncreditfi::credit_profile {
             profile.loan_count,
             profile.default_count,
         );
+    }
+    
+    public fun has_profile(registry: &ProfileRegistry, user: address): bool {
+        table::contains(&registry.profiles, user)
+    }
+    
+    public fun get_profile_id(registry: &ProfileRegistry, user: address): address {
+        *table::borrow(&registry.profiles, user)
     }
 }

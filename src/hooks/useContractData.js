@@ -8,6 +8,7 @@ import { useCurrentAccount } from '@mysten/dapp-kit';
 import {
   LendingPoolDataService,
   CreditProfileDataService,
+  CollateralVaultDataService,
   DePINDataService,
   BalanceService,
   UserDepositService,
@@ -44,6 +45,25 @@ export const useCreditProfile = (options = {}) => {
     enabled: !!userAddress, // Only fetch if user is connected
     refetchInterval: 45000, // Refetch every 45 seconds (reduced from 15s)
     staleTime: 30000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch user's collateral vault
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with collateral vault data
+ */
+export const useCollateralVault = (options = {}) => {
+  const account = useCurrentAccount();
+  const userAddress = account?.address;
+
+  return useQuery({
+    queryKey: ['collateralVault', userAddress],
+    queryFn: () => CollateralVaultDataService.fetchCollateralVault(userAddress),
+    enabled: !!userAddress,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 20000,
     ...options,
   });
 };
@@ -195,6 +215,7 @@ export const useInvalidateQueries = () => {
     invalidateAll: () => {
       queryClient.invalidateQueries({ queryKey: ['lendingPool'] });
       queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] });
+      queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] });
       queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] });
       queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] });
       queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] });
@@ -205,6 +226,9 @@ export const useInvalidateQueries = () => {
     },
     invalidateCreditProfile: () => {
       queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] });
+    },
+    invalidateCollateralVault: () => {
+      queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] });
     },
     invalidateBalance: () => {
       queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] });
@@ -249,6 +273,7 @@ export const useLendingData = () => {
 export default {
   useLendingPool,
   useCreditProfile,
+  useCollateralVault,
   useUserBalance,
   useUserDeposits,
   useUserLoans,

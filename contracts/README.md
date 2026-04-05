@@ -82,12 +82,15 @@ Core lending operations combining credit profiles and pools with event emission.
 - Event-driven architecture (DepositEvent, WithdrawEvent, BorrowEvent, RepayEvent)
 - Automatic credit score updates
 - Balance-based coin handling
+- **Security**: Loans are non-transferable to prevent debt escaping
 
 **Key Functions:**
 - `deposit()` - Deposit SUI into pool (emits DepositEvent)
 - `withdraw()` - Withdraw SUI from pool (emits WithdrawEvent)
 - `borrow()` - Borrow SUI from pool (requires min credit score, emits BorrowEvent)
 - `repay()` - Repay a loan (improves credit score, emits RepayEvent)
+
+**Security Note**: Loan objects cannot be transferred between addresses. This prevents borrowers from escaping debt by transferring loans to burner addresses. Loans must be held and repaid by the original borrower.
 
 ### 4. DePIN (`depin.move`)
 Decentralized Physical Infrastructure Network funding with NFT-based proof of investment.

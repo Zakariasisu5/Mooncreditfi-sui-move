@@ -186,6 +186,138 @@ export const CreditProfileDataService = {
 };
 
 /**
+ * Collateral Vault Data Service
+ */
+export const CollateralVaultDataService = {
+  /**
+   * Fetch user's collateral vault
+   * @param {string} userAddress - User's Sui address
+   * @returns {Promise<Object>} Collateral vault data
+   */
+  fetchCollateralVault: async (userAddress) => {
+    try {
+      const suiClient = getSuiClient();
+      
+      // Step 1: Try to find vault via CollateralDeposited events (for existing vaults with collateral)
+      const depositEvents = await suiClient.queryEvents({
+        query: {
+          MoveEventType: `${SUI_PACKAGE_ID}::collateral::CollateralDeposited`,
+        },
+        limit: 50,
+        order: 'descending',
+      });
+
+      // Find vault owned by this user from deposit events
+      let vaultId = null;
+      for (const event of depositEvents.data || []) {
+        if (event.parsedJson?.owner === userAddress) {
+          vaultId = event.parsedJson?.vault_id;
+          break;
+        }
+      }
+
+      // Step 2: If no vault found via deposit events, search using getOwnedObjects (for newly created vaults)
+      if (!vaultId) {
+        try {
+          const ownedObjects = await suiClient.getOwnedObjects({
+            owner: userAddress,
+            limit: 50,
+          });
+
+          // Look for CollateralVault object type
+          const vaultTypePrefix = `${SUI_PACKAGE_ID}::collateral::CollateralVault`;
+          for (const obj of ownedObjects.data || []) {
+            if (obj.data?.type?.includes('CollateralVault')) {
+              vaultId = obj.data.objectId;
+              break;
+            }
+          }
+        } catch (e) {
+          console.warn('getOwnedObjects fallback failed:', e);
+        }
+      }
+
+      if (!vaultId) {
+        return null; // No vault found
+      }
+
+      // Fetch the vault object
+      const vaultObject = await suiClient.getObject({
+        id: vaultId,
+        options: {
+          showContent: true,
+          showType: true,
+        },
+      });
+
+      if (!vaultObject.data) {
+        return null;
+      }
+
+      const fields = vaultObject.data.content?.fields;
+      if (!fields) {
+        return null;
+      }
+
+      const collateralAmount = mistToSui(fields.collateral_amount || 0);
+      const borrowedAmount = mistToSui(fields.borrowed_amount || 0);
+      
+      // Calculate collateral ratio (in percentage)
+      let collateralRatio = 0;
+      if (borrowedAmount > 0) {
+        collateralRatio = (collateralAmount / borrowedAmount) * 100;
+      }
+
+      // Liquidation threshold is 150%
+      const liquidationThreshold = 150;
+      const isHealthy = borrowedAmount === 0 || collateralRatio >= liquidationThreshold;
+      const isAtRisk = collateralRatio > 0 && collateralRatio < liquidationThreshold * 1.2; // Within 20% of liquidation
+      const isLiquidatable = borrowedAmount > 0 && collateralRatio < liquidationThreshold;
+
+      return {
+        objectId: vaultObject.data.objectId,
+        owner: fields.owner,
+        collateralAmount,
+        borrowedAmount,
+        collateralRatio,
+        liquidationThreshold,
+        isHealthy,
+        isAtRisk,
+        isLiquidatable,
+        availableToWithdraw: borrowedAmount === 0 ? collateralAmount : 0,
+        requiredCollateral: borrowedAmount * (liquidationThreshold / 100),
+      };
+    } catch (error) {
+      console.error('Error fetching collateral vault:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Calculate required collateral for a borrow amount
+   * @param {number} borrowAmount - Amount to borrow in SUI
+   * @param {number} existingBorrowed - Existing borrowed amount in SUI
+   * @returns {Object} Collateral requirements
+   */
+  calculateRequiredCollateral: (borrowAmount, existingBorrowed = 0) => {
+    const liquidationThreshold = 1.5; // 150%
+    const safeThreshold = 1.8; // 180% (recommended)
+    
+    const totalBorrowed = borrowAmount + existingBorrowed;
+    const minimumCollateral = totalBorrowed * liquidationThreshold;
+    const recommendedCollateral = totalBorrowed * safeThreshold;
+
+    return {
+      minimumCollateral,
+      recommendedCollateral,
+      totalBorrowed,
+      liquidationThreshold: 150,
+      safeThreshold: 180,
+    };
+  },
+};
+
+/**
  * DePIN Data Service
  */
 export const DePINDataService = {
@@ -710,6 +842,7 @@ export const DataUtils = {
 export default {
   LendingPoolDataService,
   CreditProfileDataService,
+  CollateralVaultDataService,
   DePINDataService,
   TransactionDataService,
   BalanceService,

@@ -12,13 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { DollarSign, CreditCard, TrendingUp, Clock, CheckCircle, XCircle, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { DollarSign, CreditCard, TrendingUp, Clock, CheckCircle, XCircle, Loader2, AlertCircle, ExternalLink, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { useSecureTransaction } from '@/hooks/useSecureTransaction';
-import { useCreditProfile, useMaxBorrowLimit, useLendingPool, useInvalidateQueries, useUserLoans, useUserBalance } from '@/hooks/useContractData';
-import { BorrowingService, CreditProfileService, ValidationService, ErrorService } from '@/services/contractService';
+import { useCreditProfile, useMaxBorrowLimit, useLendingPool, useInvalidateQueries, useUserLoans, useUserBalance, useCollateralVault } from '@/hooks/useContractData';
+import { BorrowingService, CreditProfileService, ValidationService, ErrorService, CollateralService } from '@/services/contractService';
+import { CollateralVaultDataService } from '@/services/dataService';
 import { EXPLORER_URL } from '@/config/sui';
 
 const BorrowProduction = () => {
@@ -26,6 +27,7 @@ const BorrowProduction = () => {
   const isConnected = !!account;
   const { addNotification } = useNotifications();
   const [borrowAmount, setBorrowAmount] = useState('');
+  const [collateralAmount, setCollateralAmount] = useState('');
   const [repayAmount, setRepayAmount] = useState('');
   const [loanDuration, setLoanDuration] = useState(30); // Default 30 days
   const [selectedLoanId, setSelectedLoanId] = useState(null); // For repayment
@@ -35,11 +37,14 @@ const BorrowProduction = () => {
   const { data: pool, isLoading: isLoadingPool } = useLendingPool();
   const { data: loanData, isLoading: isLoadingLoans } = useUserLoans();
   const { data: balance, isLoading: isLoadingBalance } = useUserBalance();
+  const { data: vault, isLoading: isLoadingVault } = useCollateralVault();
   const { maxBorrowLimit, creditScore, creditRating, hasProfile } = useMaxBorrowLimit();
   const { invalidateAll } = useInvalidateQueries();
 
   // SECURITY: Use secure transaction execution
   const { executeSecureTransaction, lastDigest, isPending, isConfirming } = useSecureTransaction();
+
+  const hasVault = !!vault;
 
   // Active loan data - prioritize profile.debt (on-chain source of truth)
   const currentDebt = profile?.debt || 0;
@@ -101,9 +106,41 @@ const BorrowProduction = () => {
       return;
     }
 
+    if (!hasVault) {
+      toast.error('Please create a collateral vault first');
+      return;
+    }
+
+    // Calculate required collateral
+    const borrowAmountNum = parseFloat(borrowAmount);
+    const requirements = CollateralVaultDataService.calculateRequiredCollateral(
+      borrowAmountNum,
+      vault?.borrowedAmount || 0
+    );
+
+    // Check if user has enough collateral
+    if (vault.collateralAmount < requirements.minimumCollateral) {
+      toast.error(
+        `Insufficient collateral. You need at least ${requirements.minimumCollateral.toFixed(4)} SUI (you have ${vault.collateralAmount.toFixed(4)} SUI)`
+      );
+      return;
+    }
+
+    // Warn if below recommended threshold
+    if (vault.collateralAmount < requirements.recommendedCollateral) {
+      toast.warning(
+        `Your collateral is below the recommended 180% threshold. Consider depositing more to avoid liquidation risk.`
+      );
+    }
+
     try {
-      // Create transaction with loan duration
-      const tx = BorrowingService.createBorrowTransaction(profile.objectId, borrowAmount, loanDuration);
+      // Create transaction with vault object ID
+      const tx = BorrowingService.createBorrowTransaction(
+        profile.objectId,
+        vault.objectId,
+        borrowAmount,
+        loanDuration
+      );
 
       // SECURITY: Execute with comprehensive validation
       await executeSecureTransaction(tx, {
@@ -114,13 +151,14 @@ const BorrowProduction = () => {
           profile,
           pool,
           balance,
+          vault,
         },
         onSuccess: (digest) => {
           toast.success('Borrow successful!');
           addNotification(`Borrowed ${borrowAmount} SUI`, 'success');
           setBorrowAmount('');
           // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 2000);
+          setTimeout(() => invalidateAll(), 3500);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -161,7 +199,7 @@ const BorrowProduction = () => {
           addNotification('Loan repaid — credit score updated', 'success');
           setRepayAmount('');
           // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 2000);
+          setTimeout(() => invalidateAll(), 3500);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -209,6 +247,49 @@ const BorrowProduction = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* No Vault Alert - Guide users to deposit first */}
+      {isConnected && hasProfile && !hasVault && !isLoadingVault && (
+        <Alert>
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Collateral Required for Borrowing</p>
+              <p className="text-sm">To borrow, you need to deposit SUI as collateral (150% of borrow amount). Go to the Lend page to deposit first.</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Low Collateral Warning */}
+      {isConnected && hasProfile && hasVault && borrowAmount && parseFloat(borrowAmount) > 0 && (() => {
+        const requirements = CollateralVaultDataService.calculateRequiredCollateral(
+          parseFloat(borrowAmount),
+          vault?.borrowedAmount || 0
+        );
+        const hasEnough = vault.collateralAmount >= requirements.minimumCollateral;
+        
+        if (!hasEnough) {
+          const needed = requirements.minimumCollateral - vault.collateralAmount;
+          return (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="font-medium">Insufficient Collateral</p>
+                  <p className="text-sm">
+                    You need {needed.toFixed(4)} more SUI as collateral. Go to the Lend page to deposit more.
+                  </p>
+                  <p className="text-xs">
+                    Current: {vault.collateralAmount.toFixed(4)} SUI | Required: {requirements.minimumCollateral.toFixed(4)} SUI (150%)
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          );
+        }
+        return null;
+      })()}
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Borrow Form */}
@@ -279,25 +360,71 @@ const BorrowProduction = () => {
               </div>
 
               {borrowAmount && parseFloat(borrowAmount) > 0 && (
-                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Est. Interest ({loanDuration} days)</span>
-                    <span className="font-medium">
-                      {((parseFloat(borrowAmount) * interestRate / 100) * (loanDuration / 365)).toFixed(6)} SUI
-                    </span>
+                <>
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Est. Interest ({loanDuration} days)</span>
+                      <span className="font-medium">
+                        {((parseFloat(borrowAmount) * interestRate / 100) * (loanDuration / 365)).toFixed(6)} SUI
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total to Repay</span>
+                      <span className="font-medium text-primary">
+                        {(parseFloat(borrowAmount) + (parseFloat(borrowAmount) * interestRate / 100) * (loanDuration / 365)).toFixed(6)} SUI
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total to Repay</span>
-                    <span className="font-medium text-primary">
-                      {(parseFloat(borrowAmount) + (parseFloat(borrowAmount) * interestRate / 100) * (loanDuration / 365)).toFixed(6)} SUI
-                    </span>
-                  </div>
-                </div>
+
+                  {hasVault && (() => {
+                    const requirements = CollateralVaultDataService.calculateRequiredCollateral(
+                      parseFloat(borrowAmount),
+                      vault?.borrowedAmount || 0
+                    );
+                    const hasEnough = vault.collateralAmount >= requirements.minimumCollateral;
+                    const isRecommended = vault.collateralAmount >= requirements.recommendedCollateral;
+
+                    return (
+                      <div className={`p-3 rounded-lg border text-sm space-y-1 ${
+                        !hasEnough ? 'bg-red-500/10 border-red-500/20' :
+                        !isRecommended ? 'bg-yellow-500/10 border-yellow-500/20' :
+                        'bg-green-500/10 border-green-500/20'
+                      }`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield className="h-4 w-4" />
+                          <span className="font-medium">Collateral Requirements</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Your Collateral</span>
+                          <span className="font-medium">{vault.collateralAmount.toFixed(4)} SUI</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Minimum Required (150%)</span>
+                          <span className="font-medium">{requirements.minimumCollateral.toFixed(4)} SUI</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Recommended (180%)</span>
+                          <span className="font-medium">{requirements.recommendedCollateral.toFixed(4)} SUI</span>
+                        </div>
+                        {!hasEnough && (
+                          <p className="text-xs text-red-500 mt-2">
+                            ⚠️ Insufficient collateral. Deposit more to proceed.
+                          </p>
+                        )}
+                        {hasEnough && !isRecommended && (
+                          <p className="text-xs text-yellow-600 mt-2">
+                            ⚠️ Below recommended threshold. Risk of liquidation if price drops.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
               )}
 
               <Button
                 onClick={handleBorrow}
-                disabled={isProcessing || !isConnected || !!activeLoan || !hasProfile || !borrowAmount}
+                disabled={isProcessing || !isConnected || !!activeLoan || !hasProfile || !hasVault || !borrowAmount}
                 className="w-full btn-mooncreditfi"
               >
                 {isProcessing ? (
@@ -309,6 +436,8 @@ const BorrowProduction = () => {
                   'Repay Current Loan First'
                 ) : !hasProfile ? (
                   'Create Profile First'
+                ) : !hasVault ? (
+                  'Create Vault First'
                 ) : (
                   'Borrow'
                 )}

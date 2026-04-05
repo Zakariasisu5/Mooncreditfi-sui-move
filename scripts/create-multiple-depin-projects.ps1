@@ -4,7 +4,7 @@ Write-Host "Creating Multiple DePIN Projects on Sui Testnet..." -ForegroundColor
 Write-Host ""
 
 # Package ID - Updated
-$PACKAGE_ID = "0x8853e2763099cbbd1fd5281a9823d8d76d8423a89fb8068d7c21bd4f06118088"
+$PACKAGE_ID = "0xdab56ace7345a98268bd1c2dde725f94256450386d383f3f834f2bb4711c9fdf"
 
 # Define multiple DePIN projects
 $projects = @(
