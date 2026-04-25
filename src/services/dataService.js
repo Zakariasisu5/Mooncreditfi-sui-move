@@ -9,7 +9,6 @@ import {
   LENDING_POOL_OBJECT_ID,
   networkConfig,
   ACTIVE_NETWORK,
-  USE_DEMO_MODE,
 } from '@/config/sui';
 import { mistToSui } from './contractService';
 
@@ -36,18 +35,6 @@ export const LendingPoolDataService = {
    */
   fetchPoolData: async () => {
     try {
-      // Demo mode - return realistic mock data
-      if (USE_DEMO_MODE || LENDING_POOL_OBJECT_ID.includes('00000000000000000000000000000001')) {
-        return {
-          totalLiquidity: 125000,
-          totalBorrowed: 45000,
-          totalDeposited: 125000,
-          interestRate: 5.0,
-          availableLiquidity: 80000,
-          utilizationRate: 36.0,
-        };
-      }
-
       const suiClient = getSuiClient();
       const poolObject = await suiClient.getObject({
         id: LENDING_POOL_OBJECT_ID,
@@ -151,6 +138,8 @@ export const CreditProfileDataService = {
         totalRepaid: mistToSui(fields.total_repaid || 0),
         loanCount: parseInt(fields.loan_count || 0),
         defaultCount: parseInt(fields.default_count || 0),
+        reputation: parseInt(fields.reputation || 500),  // NEW: Reputation score
+        risk_level: parseInt(fields.risk_level || 2),    // NEW: Risk level
       };
     } catch (error) {
       console.error('Error fetching credit profile:', error);
@@ -380,6 +369,8 @@ export const DePINDataService = {
         currentAmount: mistToSui(fields.current_amount || 0),
         apy: parseFloat(fields.apy || 0) / 100, // Convert basis points to percentage
         isActive: fields.is_active || false,
+        totalFunded: mistToSui(fields.total_funded || 0),  // NEW: Total funded
+        totalRevenue: mistToSui(fields.total_revenue || 0), // NEW: Total revenue
         fundingProgress: fields.target_amount > 0
           ? (parseFloat(fields.current_amount) / parseFloat(fields.target_amount)) * 100
           : 0,
@@ -428,6 +419,8 @@ export const DePINDataService = {
             currentAmount: mistToSui(fields.current_amount || 0),
             apy: parseFloat(fields.apy || 0) / 100,
             isActive: fields.is_active || false,
+            totalFunded: mistToSui(fields.total_funded || 0),  // NEW: Total funded
+            totalRevenue: mistToSui(fields.total_revenue || 0), // NEW: Total revenue
             fundingProgress: fields.target_amount > 0
               ? (parseFloat(fields.current_amount) / parseFloat(fields.target_amount)) * 100
               : 0,
@@ -825,6 +818,185 @@ export const UserLoanService = {
 };
 
 /**
+ * Risk Pool Data Service
+ */
+export const RiskPoolDataService = {
+  /**
+   * Fetch risk pool data
+   * @param {string} poolObjectId - Risk pool object ID
+   * @returns {Promise<Object>} Risk pool data
+   */
+  fetchRiskPoolData: async (poolObjectId) => {
+    try {
+      const suiClient = getSuiClient();
+      const poolObject = await suiClient.getObject({
+        id: poolObjectId,
+        options: {
+          showContent: true,
+          showType: true,
+        },
+      });
+
+      if (!poolObject.data) {
+        return null;
+      }
+
+      const fields = poolObject.data.content?.fields;
+      if (!fields) {
+        return null;
+      }
+
+      return {
+        objectId: poolObject.data.objectId,
+        totalLiquidity: mistToSui(fields.total_liquidity || 0),
+        riskLevel: parseInt(fields.risk_level || 3),
+        balance: mistToSui(fields.balance || 0),
+      };
+    } catch (error) {
+      console.error('Error fetching risk pool data:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Fetch multiple risk pools
+   * @param {Array} poolIds - Array of pool object IDs with metadata
+   * @returns {Promise<Array>} Array of risk pool data
+   */
+  fetchMultipleRiskPools: async (poolIds) => {
+    try {
+      const suiClient = getSuiClient();
+      
+      const poolPromises = poolIds.map(async (poolInfo) => {
+        try {
+          const poolObject = await suiClient.getObject({
+            id: poolInfo.id,
+            options: {
+              showContent: true,
+              showType: true,
+            },
+          });
+
+          if (!poolObject.data) {
+            return null;
+          }
+
+          const fields = poolObject.data.content?.fields;
+          if (!fields) {
+            return null;
+          }
+
+          return {
+            objectId: poolObject.data.objectId,
+            name: poolInfo.name,
+            riskLevel: parseInt(fields.risk_level || 3),
+            totalLiquidity: mistToSui(fields.total_liquidity || 0),
+            balance: mistToSui(fields.balance || 0),
+            minReputation: poolInfo.minReputation,
+          };
+        } catch (error) {
+          console.error(`Error fetching risk pool ${poolInfo.id}:`, error);
+          return null;
+        }
+      });
+
+      const pools = await Promise.all(poolPromises);
+      return pools.filter(p => p !== null);
+    } catch (error) {
+      console.error('Error fetching multiple risk pools:', error);
+      return [];
+    }
+  },
+};
+
+/**
+ * Mudarabah Pool Data Service
+ */
+export const MudarabahPoolDataService = {
+  /**
+   * Fetch Mudarabah pool data
+   * @param {string} poolObjectId - Mudarabah pool object ID
+   * @returns {Promise<Object>} Mudarabah pool data
+   */
+  fetchMudarabahPoolData: async (poolObjectId) => {
+    try {
+      const suiClient = getSuiClient();
+      const poolObject = await suiClient.getObject({
+        id: poolObjectId,
+        options: {
+          showContent: true,
+          showType: true,
+        },
+      });
+
+      if (!poolObject.data) {
+        return null;
+      }
+
+      const fields = poolObject.data.content?.fields;
+      if (!fields) {
+        return null;
+      }
+
+      const poolCapital = mistToSui(fields.pool_capital || 0);
+      const currentBalance = mistToSui(fields.balance || 0);
+      const profit = Math.max(0, currentBalance - poolCapital);
+
+      return {
+        objectId: poolObject.data.objectId,
+        poolCapital,
+        currentBalance,
+        profit,
+        profitRatio: parseInt(fields.profit_ratio || 7000), // basis points
+        manager: fields.manager,
+      };
+    } catch (error) {
+      console.error('Error fetching Mudarabah pool data:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Fetch profit distribution events for a pool
+   * @param {string} poolObjectId - Mudarabah pool object ID
+   * @returns {Promise<Array>} Array of distribution events
+   */
+  fetchDistributionHistory: async (poolObjectId) => {
+    try {
+      const suiClient = getSuiClient();
+      
+      let distributionEvents = { data: [] };
+      try {
+        distributionEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: `${SUI_PACKAGE_ID}::mudarabah::ProfitDistributedEvent`,
+          },
+          limit: 100,
+        });
+      } catch (eventError) {
+        console.warn('Could not fetch distribution events:', eventError.message);
+      }
+
+      // Filter events for this pool
+      const poolEvents = (distributionEvents.data || [])
+        .filter(event => event.parsedJson?.pool_id === poolObjectId)
+        .map(event => ({
+          timestamp: event.timestampMs,
+          investorShare: mistToSui(event.parsedJson?.investor_share || 0),
+          managerShare: mistToSui(event.parsedJson?.manager_share || 0),
+          totalProfit: mistToSui(event.parsedJson?.total_profit || 0),
+          txDigest: event.id?.txDigest,
+        }));
+
+      return poolEvents;
+    } catch (error) {
+      console.error('Error fetching distribution history:', error);
+      return [];
+    }
+  },
+};
+
+/**
  * Utility functions
  */
 export const DataUtils = {
@@ -870,6 +1042,8 @@ export default {
   CreditProfileDataService,
   CollateralVaultDataService,
   DePINDataService,
+  RiskPoolDataService,
+  MudarabahPoolDataService,
   TransactionDataService,
   BalanceService,
   UserDepositService,

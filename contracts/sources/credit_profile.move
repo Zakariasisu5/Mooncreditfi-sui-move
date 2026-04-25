@@ -46,6 +46,11 @@ module mooncreditfi::credit_profile {
         transfer::share_object(registry);
     }
 
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(ctx);
+    }
+
     public entry fun create_profile(registry: &mut ProfileRegistry, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
         

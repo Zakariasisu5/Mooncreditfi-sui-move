@@ -522,3 +522,229 @@ export default {
   suiToMist,
   mistToSui,
 };
+
+
+/**
+ * Risk Pool Transactions
+ */
+export const RiskPoolService = {
+  /**
+   * Create a new risk pool
+   * @param {number} tier - Risk tier (1=Conservative, 2=Balanced, 3=Aggressive)
+   * @param {number} minReputation - Minimum reputation required
+   * @param {number} maxLTV - Maximum loan-to-value ratio in basis points
+   * @param {number} interestRate - Interest rate in basis points
+   * @returns {Transaction}
+   */
+  createRiskPoolTransaction: (tier, minReputation, maxLTV, interestRate) => {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::risk_pool::create_pool`,
+      arguments: [
+        tx.pure.u8(tier),
+        tx.pure.u64(minReputation),
+        tx.pure.u64(maxLTV),
+        tx.pure.u64(interestRate),
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Deposit to a risk pool
+   * @param {string} poolId - Risk pool object ID
+   * @param {number} amountInSui - Amount in SUI
+   * @returns {Transaction}
+   */
+  depositToRiskPoolTransaction: (poolId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    const [coin] = tx.splitCoins(tx.gas, [amountInMist]);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::risk_pool::deposit`,
+      arguments: [
+        tx.object(poolId),
+        coin,
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Borrow from a risk pool
+   * @param {string} poolId - Risk pool object ID
+   * @param {string} profileId - Credit profile object ID
+   * @param {number} amountInSui - Amount in SUI
+   * @returns {Transaction}
+   */
+  borrowFromRiskPoolTransaction: (poolId, profileId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::risk_pool::borrow`,
+      arguments: [
+        tx.object(poolId),
+        tx.object(profileId),
+        tx.pure.u64(amountInMist),
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Withdraw from a risk pool
+   * @param {string} poolId - Risk pool object ID
+   * @param {number} amountInSui - Amount in SUI
+   * @returns {Transaction}
+   */
+  withdrawFromRiskPoolTransaction: (poolId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::risk_pool::withdraw`,
+      arguments: [
+        tx.object(poolId),
+        tx.pure.u64(amountInMist),
+      ],
+    });
+    
+    return tx;
+  },
+};
+
+/**
+ * Mudarabah (Islamic Finance) Transactions
+ */
+export const MudarabahService = {
+  /**
+   * Create a new Mudarabah pool
+   * @param {number} profitShareRatio - Profit share ratio in basis points (e.g., 7000 = 70%)
+   * @returns {Transaction}
+   */
+  createMudarabahPoolTransaction: (profitShareRatio) => {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::mudarabah::create_pool`,
+      arguments: [
+        tx.pure.u64(profitShareRatio),
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Contribute to a Mudarabah pool (Rabb-ul-Maal)
+   * @param {string} poolId - Mudarabah pool object ID
+   * @param {number} amountInSui - Amount in SUI
+   * @returns {Transaction}
+   */
+  contributeToMudarabahTransaction: (poolId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    const [coin] = tx.splitCoins(tx.gas, [amountInMist]);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::mudarabah::contribute`,
+      arguments: [
+        tx.object(poolId),
+        coin,
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Invest from a Mudarabah pool (Mudarib action)
+   * @param {string} poolId - Mudarabah pool object ID
+   * @param {number} amountInSui - Amount in SUI
+   * @returns {Transaction}
+   */
+  investFromMudarabahTransaction: (poolId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::mudarabah::invest`,
+      arguments: [
+        tx.object(poolId),
+        tx.pure.u64(amountInMist),
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Record profit in a Mudarabah pool
+   * @param {string} poolId - Mudarabah pool object ID
+   * @param {number} profitInSui - Profit amount in SUI
+   * @returns {Transaction}
+   */
+  recordProfitTransaction: (poolId, profitInSui) => {
+    const tx = new Transaction();
+    const profitInMist = suiToMist(profitInSui);
+    
+    const [coin] = tx.splitCoins(tx.gas, [profitInMist]);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::mudarabah::record_profit`,
+      arguments: [
+        tx.object(poolId),
+        coin,
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Distribute profit in a Mudarabah pool
+   * @param {string} poolId - Mudarabah pool object ID
+   * @returns {Transaction}
+   */
+  distributeProfitTransaction: (poolId) => {
+    const tx = new Transaction();
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::mudarabah::distribute_profit`,
+      arguments: [
+        tx.object(poolId),
+      ],
+    });
+    
+    return tx;
+  },
+
+  /**
+   * Withdraw from a Mudarabah pool
+   * @param {string} poolId - Mudarabah pool object ID
+   * @param {number} amountInSui - Amount in SUI
+   * @returns {Transaction}
+   */
+  withdrawFromMudarabahTransaction: (poolId, amountInSui) => {
+    const tx = new Transaction();
+    const amountInMist = suiToMist(amountInSui);
+    
+    tx.moveCall({
+      target: `${SUI_PACKAGE_ID}::mudarabah::withdraw`,
+      arguments: [
+        tx.object(poolId),
+        tx.pure.u64(amountInMist),
+      ],
+    });
+    
+    return tx;
+  },
+};

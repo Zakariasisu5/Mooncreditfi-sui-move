@@ -5,8 +5,8 @@
 
 set -e
 
-PACKAGE_ID="0xe5562b70f5e2618a78a4e2ce8494af09098518461ba50f1004071209277f5bce"
-DEPLOYER_ADDRESS="0x0efea5713bf6a94382d3b7acc0c1a1438a54a41439b5db5c0c66a63b5f3d0fe0"
+PACKAGE_ID="0x1a464477cbda05cedfe2bffefdf05a23203c0bde47d98efdcd487f8a721c4dbf"
+DEPLOYER_ADDRESS="0x1b5f1da225b2ead0d8ed23c70bcbe78f872756953870a3429c7f347a239c1160"
 
 echo "🚀 MoonCreditFi Object Initialization"
 echo "======================================"

@@ -14,6 +14,8 @@ module mooncreditfi::depin {
     const ENotOwner: u64 = 3;
     const ENotMatured: u64 = 4;
     const EInsufficientTreasury: u64 = 5;
+    const EDivisionByZero: u64 = 6;
+    const EOverflowPrevention: u64 = 8;
 
     public struct DepinProject has key, store {
         id: UID,
@@ -24,6 +26,8 @@ module mooncreditfi::depin {
         apy: u64,
         is_active: bool,
         treasury_balance: Balance<SUI>,
+        total_funded: u64,
+        total_revenue: u64,
     }
 
     public struct DepinNFT has key, store {
@@ -78,6 +82,12 @@ module mooncreditfi::depin {
         total_return: u64,
     }
 
+    public struct RevenueDistributedEvent has copy, drop {
+        recipient: address,
+        amount: u64,
+        timestamp: u64,
+    }
+
     public entry fun create_project(
         name: vector<u8>,
         description: vector<u8>,
@@ -99,6 +109,8 @@ module mooncreditfi::depin {
             apy,
             is_active: true,
             treasury_balance: balance::zero(),
+            total_funded: 0,
+            total_revenue: 0,
         };
 
         event::emit(ProjectCreated { project_id, name: name_str, target_amount, apy });
@@ -121,7 +133,12 @@ module mooncreditfi::depin {
         let remaining_capacity = project.target_amount - project.current_amount;
         assert!(amount <= remaining_capacity, EExceedsFundingTarget);
 
+        let old_current = project.current_amount;
+        let old_funded = project.total_funded;
         project.current_amount = project.current_amount + amount;
+        project.total_funded = project.total_funded + amount;
+        assert!(project.current_amount >= old_current, EOverflowPrevention);
+        assert!(project.total_funded >= old_funded, EOverflowPrevention);
 
         if (project.current_amount >= project.target_amount) {
             project.is_active = false;
@@ -262,6 +279,8 @@ module mooncreditfi::depin {
     public fun get_project_apy(project: &DepinProject): u64 { project.apy }
     public fun is_project_active(project: &DepinProject): bool { project.is_active }
     public fun get_treasury_balance(project: &DepinProject): u64 { balance::value(&project.treasury_balance) }
+    public fun get_total_funded(project: &DepinProject): u64 { project.total_funded }
+    public fun get_total_revenue(project: &DepinProject): u64 { project.total_revenue }
 
     public fun get_nft_project_id(nft: &DepinNFT): address { nft.project_id }
     public fun get_nft_investor(nft: &DepinNFT): address { nft.investor }
@@ -270,4 +289,36 @@ module mooncreditfi::depin {
     public fun get_nft_accumulated_yield(nft: &DepinNFT): u64 { nft.accumulated_yield }
     public fun get_nft_last_yield_claim(nft: &DepinNFT): u64 { nft.last_yield_claim }
     public fun get_nft_maturity_date(nft: &DepinNFT): u64 { nft.maturity_date }
+
+    public(package) fun record_revenue(project: &mut DepinProject, amount: u64) {
+        let old_revenue = project.total_revenue;
+        project.total_revenue = project.total_revenue + amount;
+        assert!(project.total_revenue >= old_revenue, EOverflowPrevention);
+    }
+
+    public entry fun distribute_revenue(
+        project: &mut DepinProject,
+        nft: &DepinNFT,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let recipient = tx_context::sender(ctx);
+        assert!(nft.investor == recipient, ENotOwner);
+        assert!(project.total_funded > 0, EDivisionByZero);
+        
+        let user_share = (project.total_revenue * nft.amount) / project.total_funded;
+        let treasury_balance = balance::value(&project.treasury_balance);
+        assert!(treasury_balance >= user_share, EInsufficientTreasury);
+        
+        let share_balance = balance::split(&mut project.treasury_balance, user_share);
+        let share_coin = coin::from_balance(share_balance, ctx);
+        transfer::public_transfer(share_coin, recipient);
+        
+        let current_time = clock::timestamp_ms(clock);
+        event::emit(RevenueDistributedEvent {
+            recipient,
+            amount: user_share,
+            timestamp: current_time,
+        });
+    }
 }

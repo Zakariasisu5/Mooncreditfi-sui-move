@@ -66,6 +66,32 @@ const CreditProfileProduction = () => {
     ? ((profile?.totalBorrowed || 0) / maxBorrowLimit) * 100
     : 0;
 
+  // Get reputation and risk level from profile
+  const reputation = profile?.reputation || 500;
+  const riskLevel = profile?.risk_level || 2;
+  
+  // Map risk level to display text and color
+  const getRiskLevelInfo = (level) => {
+    switch(level) {
+      case 1: return { label: 'Low Risk', color: 'text-green-600', bgColor: 'bg-green-100', variant: 'default' };
+      case 2: return { label: 'Medium Risk', color: 'text-yellow-600', bgColor: 'bg-yellow-100', variant: 'secondary' };
+      case 3: return { label: 'High Risk', color: 'text-red-600', bgColor: 'bg-red-100', variant: 'destructive' };
+      default: return { label: 'Unknown', color: 'text-gray-600', bgColor: 'bg-gray-100', variant: 'outline' };
+    }
+  };
+  
+  const riskInfo = getRiskLevelInfo(riskLevel);
+  
+  // Get reputation color based on score
+  const getReputationColor = (rep) => {
+    if (rep >= 750) return 'text-green-600';
+    if (rep >= 600) return 'text-blue-600';
+    if (rep >= 400) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+  
+  const reputationColor = getReputationColor(reputation);
+
   // Prepare wallet data for AI analysis
   const walletDataForAI = useMemo(() => {
     if (!account || !profile) return null;
@@ -177,6 +203,13 @@ const CreditProfileProduction = () => {
               description="Lifetime repayments"
               icon={User}
             />
+            <StatsCard
+              title="Reputation Score"
+              value={reputation}
+              description={`${riskInfo.label} • Range: 0-1000`}
+              icon={TrendingUp}
+              className={`border-${riskInfo.color.split('-')[1]}-200`}
+            />
           </>
         ) : (
           <div className="col-span-full">
@@ -242,6 +275,9 @@ const CreditProfileProduction = () => {
                   </div>
                   <div className="text-right">
                     <Badge variant={creditRating.variant} className="text-xs sm:text-sm">{creditRating.label}</Badge>
+                    <Badge variant={riskInfo.variant} className={`text-xs sm:text-sm ml-2 ${riskInfo.bgColor} ${riskInfo.color}`}>
+                      {riskInfo.label}
+                    </Badge>
                     <p className="text-[10px] sm:text-xs text-muted-foreground mt-2">
                       Based on {profile?.loanCount || 0} loans
                     </p>
@@ -249,6 +285,14 @@ const CreditProfileProduction = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Reputation</p>
+                    <p className={`font-bold text-base sm:text-lg ${reputationColor}`}>{reputation}</p>
+                  </div>
+                  <div className="p-2 sm:p-3 bg-muted/50 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Risk Level</p>
+                    <p className={`font-bold text-xs sm:text-sm ${riskInfo.color}`}>{riskInfo.label}</p>
+                  </div>
                   <div className="p-2 sm:p-3 bg-muted/50 rounded-lg">
                     <p className="text-[10px] sm:text-xs text-muted-foreground">Loan Count</p>
                     <p className="font-bold text-base sm:text-lg">{profile?.loanCount || 0}</p>

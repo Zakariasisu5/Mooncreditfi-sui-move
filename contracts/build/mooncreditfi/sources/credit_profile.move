@@ -46,6 +46,11 @@ module mooncreditfi::credit_profile {
         transfer::share_object(registry);
     }
 
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(ctx);
+    }
+
     public entry fun create_profile(registry: &mut ProfileRegistry, ctx: &mut TxContext) {
         let sender = tx_context::sender(ctx);
         
@@ -94,9 +99,7 @@ module mooncreditfi::credit_profile {
     public fun get_risk_level(profile: &CreditProfile): u8 { profile.risk_level }
     public fun get_repayment_history_count(profile: &CreditProfile): u64 { profile.repayment_history_count }
     public fun get_last_activity_time(profile: &CreditProfile): u64 { profile.last_activity_time }
-    
     public fun get_last_loan_time(profile: &CreditProfile): u64 { profile.last_loan_time }
-    
     public fun get_active_loans(profile: &CreditProfile): &vector<address> { &profile.active_loans }
     
     public fun calculate_max_borrow_limit(profile: &CreditProfile): u64 {

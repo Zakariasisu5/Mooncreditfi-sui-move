@@ -10,6 +10,8 @@ import {
   CreditProfileDataService,
   CollateralVaultDataService,
   DePINDataService,
+  RiskPoolDataService,
+  MudarabahPoolDataService,
   BalanceService,
   UserDepositService,
   UserLoanService,
@@ -183,6 +185,74 @@ export const useUserDePINNFTs = (options = {}) => {
 };
 
 /**
+ * Hook to fetch risk pool data
+ * @param {string} poolObjectId - Risk pool object ID
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with risk pool data
+ */
+export const useRiskPool = (poolObjectId, options = {}) => {
+  return useQuery({
+    queryKey: ['riskPool', poolObjectId],
+    queryFn: () => RiskPoolDataService.fetchRiskPoolData(poolObjectId),
+    enabled: !!poolObjectId,
+    refetchInterval: 30000,
+    staleTime: 20000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch multiple risk pools
+ * @param {Array} poolIds - Array of pool object IDs with metadata
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with risk pools data
+ */
+export const useRiskPools = (poolIds = [], options = {}) => {
+  return useQuery({
+    queryKey: ['riskPools', poolIds],
+    queryFn: () => RiskPoolDataService.fetchMultipleRiskPools(poolIds),
+    enabled: poolIds.length > 0,
+    refetchInterval: 30000,
+    staleTime: 20000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch Mudarabah pool data
+ * @param {string} poolObjectId - Mudarabah pool object ID
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with Mudarabah pool data
+ */
+export const useMudarabahPool = (poolObjectId, options = {}) => {
+  return useQuery({
+    queryKey: ['mudarabahPool', poolObjectId],
+    queryFn: () => MudarabahPoolDataService.fetchMudarabahPoolData(poolObjectId),
+    enabled: !!poolObjectId,
+    refetchInterval: 30000,
+    staleTime: 20000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch Mudarabah distribution history
+ * @param {string} poolObjectId - Mudarabah pool object ID
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with distribution history
+ */
+export const useMudarabahDistributionHistory = (poolObjectId, options = {}) => {
+  return useQuery({
+    queryKey: ['mudarabahDistributionHistory', poolObjectId],
+    queryFn: () => MudarabahPoolDataService.fetchDistributionHistory(poolObjectId),
+    enabled: !!poolObjectId,
+    refetchInterval: 60000,
+    staleTime: 45000,
+    ...options,
+  });
+};
+
+/**
  * Hook to calculate max borrow limit
  * @returns {Object} Max borrow limit and credit rating
  */
@@ -242,6 +312,14 @@ export const useInvalidateQueries = () => {
     invalidateDePIN: () => {
       queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] });
     },
+    invalidateRiskPools: () => {
+      queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+      queryClient.invalidateQueries({ queryKey: ['riskPool'] });
+    },
+    invalidateMudarabah: () => {
+      queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+      queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
+    },
   };
 };
 
@@ -280,6 +358,10 @@ export default {
   useDePINProject,
   useDePINProjects,
   useUserDePINNFTs,
+  useRiskPool,
+  useRiskPools,
+  useMudarabahPool,
+  useMudarabahDistributionHistory,
   useMaxBorrowLimit,
   useInvalidateQueries,
   useLendingData,

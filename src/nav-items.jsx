@@ -1,4 +1,4 @@
-import { Home, TrendingUp, User, Zap, DollarSign, CreditCard } from "lucide-react";
+import { Home, TrendingUp, User, Zap, DollarSign, CreditCard, Shield } from "lucide-react";
 import Index from "./pages/Index.jsx";
 import AssetDetails from "./pages/AssetDetails.jsx";
 import DeFiInsights from "./pages/DeFiInsights.jsx";
@@ -6,6 +6,7 @@ import CreditProfileProduction from "./pages/CreditProfileProduction.jsx";
 import DePINFinance from "./pages/DePINFinance.jsx";
 import LendProduction from "./pages/LendProduction.jsx";
 import BorrowProduction from "./pages/BorrowProduction.jsx";
+import AdvancedDeFi from "./pages/AdvancedDeFi.jsx";
 
 /**
  * Central place for defining the navigation items. Used for navigation components and routing.
@@ -46,6 +47,12 @@ export const navItems = [
     to: "/depin",
     icon: <Zap className="h-4 w-4" />,
     page: DePINFinance,
+  },
+  {
+    title: "Advanced DeFi",
+    to: "/advanced",
+    icon: <Shield className="h-4 w-4" />,
+    page: AdvancedDeFi,
   },
 ];
 

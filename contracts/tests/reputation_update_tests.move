@@ -4,14 +4,24 @@ module mooncreditfi::reputation_update_tests {
     use mooncreditfi::credit_profile::{Self, ProfileRegistry, CreditProfile};
 
     const USER: address = @0x1;
+    const ADMIN: address = @0xAD;
 
     #[test]
     fun test_reputation_increase_on_time_repayment() {
-        let mut scenario = ts::begin(USER);
+        let mut scenario = ts::begin(ADMIN);
         
-        // Initialize registry
+        // Initialize the module (creates ProfileRegistry)
         {
-            credit_profile::create_profile(ts::take_shared<ProfileRegistry>(&scenario), ts::ctx(&mut scenario));
+            credit_profile::init_for_testing(ts::ctx(&mut scenario));
+        };
+        
+        ts::next_tx(&mut scenario, USER);
+        
+        // Create profile
+        {
+            let mut registry = ts::take_shared<ProfileRegistry>(&scenario);
+            credit_profile::create_profile(&mut registry, ts::ctx(&mut scenario));
+            ts::return_shared(registry);
         };
         
         ts::next_tx(&mut scenario, USER);
@@ -39,11 +49,20 @@ module mooncreditfi::reputation_update_tests {
 
     #[test]
     fun test_reputation_decrease_on_late_repayment() {
-        let mut scenario = ts::begin(USER);
+        let mut scenario = ts::begin(ADMIN);
         
-        // Initialize registry
+        // Initialize the module (creates ProfileRegistry)
         {
-            credit_profile::create_profile(ts::take_shared<ProfileRegistry>(&scenario), ts::ctx(&mut scenario));
+            credit_profile::init_for_testing(ts::ctx(&mut scenario));
+        };
+        
+        ts::next_tx(&mut scenario, USER);
+        
+        // Create profile
+        {
+            let mut registry = ts::take_shared<ProfileRegistry>(&scenario);
+            credit_profile::create_profile(&mut registry, ts::ctx(&mut scenario));
+            ts::return_shared(registry);
         };
         
         ts::next_tx(&mut scenario, USER);
@@ -71,11 +90,20 @@ module mooncreditfi::reputation_update_tests {
 
     #[test]
     fun test_reputation_cap_at_1000() {
-        let mut scenario = ts::begin(USER);
+        let mut scenario = ts::begin(ADMIN);
         
-        // Initialize registry
+        // Initialize the module (creates ProfileRegistry)
         {
-            credit_profile::create_profile(ts::take_shared<ProfileRegistry>(&scenario), ts::ctx(&mut scenario));
+            credit_profile::init_for_testing(ts::ctx(&mut scenario));
+        };
+        
+        ts::next_tx(&mut scenario, USER);
+        
+        // Create profile
+        {
+            let mut registry = ts::take_shared<ProfileRegistry>(&scenario);
+            credit_profile::create_profile(&mut registry, ts::ctx(&mut scenario));
+            ts::return_shared(registry);
         };
         
         ts::next_tx(&mut scenario, USER);
@@ -104,11 +132,20 @@ module mooncreditfi::reputation_update_tests {
 
     #[test]
     fun test_reputation_floor_at_0() {
-        let mut scenario = ts::begin(USER);
+        let mut scenario = ts::begin(ADMIN);
         
-        // Initialize registry
+        // Initialize the module (creates ProfileRegistry)
         {
-            credit_profile::create_profile(ts::take_shared<ProfileRegistry>(&scenario), ts::ctx(&mut scenario));
+            credit_profile::init_for_testing(ts::ctx(&mut scenario));
+        };
+        
+        ts::next_tx(&mut scenario, USER);
+        
+        // Create profile
+        {
+            let mut registry = ts::take_shared<ProfileRegistry>(&scenario);
+            credit_profile::create_profile(&mut registry, ts::ctx(&mut scenario));
+            ts::return_shared(registry);
         };
         
         ts::next_tx(&mut scenario, USER);
@@ -137,11 +174,20 @@ module mooncreditfi::reputation_update_tests {
 
     #[test]
     fun test_risk_level_transitions() {
-        let mut scenario = ts::begin(USER);
+        let mut scenario = ts::begin(ADMIN);
         
-        // Initialize registry
+        // Initialize the module (creates ProfileRegistry)
         {
-            credit_profile::create_profile(ts::take_shared<ProfileRegistry>(&scenario), ts::ctx(&mut scenario));
+            credit_profile::init_for_testing(ts::ctx(&mut scenario));
+        };
+        
+        ts::next_tx(&mut scenario, USER);
+        
+        // Create profile
+        {
+            let mut registry = ts::take_shared<ProfileRegistry>(&scenario);
+            credit_profile::create_profile(&mut registry, ts::ctx(&mut scenario));
+            ts::return_shared(registry);
         };
         
         ts::next_tx(&mut scenario, USER);

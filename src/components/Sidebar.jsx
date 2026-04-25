@@ -1,17 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, TrendingUp, User, Zap, Star, DollarSign, CreditCard } from 'lucide-react';
+import { navItems } from '../nav-items';
 
 const Sidebar = ({ sidebarOpen = false, onClose }) => {
   const location = useLocation();
-
-  const menuItems = [
-    { icon: Home, label: 'Dashboard', path: '/dashboard' },
-    { icon: DollarSign, label: 'Lend', path: '/lend' },
-    { icon: CreditCard, label: 'Borrow', path: '/borrow' },
-    { icon: User, label: 'Credit Profile', path: '/credit' },
-    { icon: TrendingUp, label: 'DeFi Insights', path: '/defi' },
-    { icon: Zap, label: 'DePIN Finance', path: '/depin' },
-  ];
 
   return (
     // On mobile: hidden by default, slide in when sidebarOpen is true.
@@ -29,17 +20,17 @@ const Sidebar = ({ sidebarOpen = false, onClose }) => {
       </div>
 
       <nav className="space-y-2">
-        {menuItems.map((item) => (
+        {navItems.map((item) => (
           <NavLink
-            key={item.path}
-            to={item.path}
+            key={item.to}
+            to={item.to}
             onClick={() => onClose && onClose()}
             className={({ isActive }) =>
               `sidebar-item ${isActive ? 'active' : ''}`
             }
           >
-            <item.icon className="h-5 w-5 mr-3" />
-            {item.label}
+            {item.icon}
+            <span className="ml-3">{item.title}</span>
           </NavLink>
         ))}
       </nav>
