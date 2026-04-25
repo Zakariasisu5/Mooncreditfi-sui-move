@@ -17,6 +17,8 @@ module mooncreditfi::credit_profile {
         owner: address,
         score: u64,
         debt: u64,  // DEPRECATED: Kept for backward compatibility, use active_loans instead
+        reputation: u64,  // NEW: Reputation score (0-1000)
+        risk_level: u8,   // NEW: Risk tier (1=low, 2=medium, 3=high)
         total_borrowed: u64,
         total_repaid: u64,
         loan_count: u64,
@@ -57,6 +59,8 @@ module mooncreditfi::credit_profile {
             owner: sender,
             score: credit_scoring::get_default_score(), // 500
             debt: 0,
+            reputation: 500,  // Initialize to 500
+            risk_level: 2,    // Initialize to 2 (medium risk)
             total_borrowed: 0,
             total_repaid: 0,
             loan_count: 0,
@@ -86,6 +90,8 @@ module mooncreditfi::credit_profile {
     public fun get_loan_count(profile: &CreditProfile): u64 { profile.loan_count }
     public fun get_default_count(profile: &CreditProfile): u64 { profile.default_count }
     public fun get_debt(profile: &CreditProfile): u64 { profile.debt }
+    public fun get_reputation(profile: &CreditProfile): u64 { profile.reputation }
+    public fun get_risk_level(profile: &CreditProfile): u8 { profile.risk_level }
     public fun get_repayment_history_count(profile: &CreditProfile): u64 { profile.repayment_history_count }
     public fun get_last_activity_time(profile: &CreditProfile): u64 { profile.last_activity_time }
     
@@ -107,6 +113,44 @@ module mooncreditfi::credit_profile {
 
     public(package) fun update_activity_time(profile: &mut CreditProfile, timestamp: u64) {
         profile.last_activity_time = timestamp;
+    }
+
+    public(package) fun update_reputation(profile: &mut CreditProfile, new_reputation: u64) {
+        profile.reputation = new_reputation;
+    }
+
+    public(package) fun update_risk_level(profile: &mut CreditProfile, new_risk_level: u8) {
+        profile.risk_level = new_risk_level;
+    }
+
+    public(package) fun update_reputation_on_repayment(profile: &mut CreditProfile, is_on_time: bool) {
+        if (is_on_time) {
+            // Increase reputation by 10, capped at 1000
+            if (profile.reputation < 1000) {
+                let new_reputation = profile.reputation + 10;
+                if (new_reputation > 1000) {
+                    profile.reputation = 1000;
+                } else {
+                    profile.reputation = new_reputation;
+                };
+            };
+        } else {
+            // Decrease reputation by 20, floored at 0
+            if (profile.reputation >= 20) {
+                profile.reputation = profile.reputation - 20;
+            } else {
+                profile.reputation = 0;
+            };
+        };
+        
+        // Update risk_level based on new reputation
+        if (profile.reputation >= 750) {
+            profile.risk_level = 1;  // low risk
+        } else if (profile.reputation >= 400) {
+            profile.risk_level = 2;  // medium risk
+        } else {
+            profile.risk_level = 3;  // high risk
+        };
     }
 
     public(package) fun record_borrow(profile: &mut CreditProfile, amount: u64, timestamp: u64) {
