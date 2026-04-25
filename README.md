@@ -138,7 +138,11 @@ F --> G[Fund DePIN Projects]
 
 ---
 
-## 🏗️ DePIN Funding
+## 🏗️ DePIN Funding & Revenue Distribution
+
+### What is DePIN?
+
+DePIN (Decentralized Physical Infrastructure Network) enables community funding of real-world infrastructure projects like solar farms, edge computing networks, and connectivity infrastructure. Contributors receive Proof-of-Impact NFTs and earn proportional revenue shares as projects generate returns.
 
 ### Example Projects
 
@@ -146,21 +150,53 @@ F --> G[Fund DePIN Projects]
 
   * Target: 50,000 SUI
   * APY: 8–12%
+  * Status: Active
 
 * 💻 **Edge Compute Lagos**
 
   * Target: 30,000 SUI
   * APY: 10–15%
+  * Status: Active
 
 ---
 
-### 💰 Yield Distribution
+### 💰 Revenue Distribution Model
 
+**Proportional Share System:**
+- Revenue is distributed based on contribution percentage
+- Formula: `Your Share = (Total Revenue × Your Contribution) / Total Funded`
+- Example: If you contributed 10% of funding, you receive 10% of revenue
+
+**Yield Distribution:**
 ```text
-70% → Investors
-20% → Operations
-10% → Reserve
+70% → Investors (proportional to contribution)
+20% → Operations & Maintenance
+10% → Reserve Fund
 ```
+
+### 🎯 How It Works
+
+1. **Contribute**: Fund DePIN projects with SUI tokens
+2. **Receive NFT**: Get Proof-of-Impact NFT representing your investment
+3. **Track Revenue**: Monitor project revenue generation in real-time
+4. **Claim Share**: Claim your proportional revenue share anytime
+5. **Compound**: Reinvest revenue into more projects
+
+### 📊 Revenue Tracking
+
+The platform provides real-time tracking of:
+- **Total Funded**: Cumulative contributions to the project
+- **Total Revenue**: Cumulative revenue generated
+- **Your Funding**: Your total contribution amount
+- **Your Revenue Share**: Your claimable revenue portion
+- **Ownership %**: Your percentage of the project
+
+### 🔐 Security Features
+
+- **NFT-Based Proof**: Blockchain-verified investment records
+- **Proportional Distribution**: Fair, transparent revenue sharing
+- **On-Chain Verification**: All transactions verifiable on Sui blockchain
+- **Smart Contract Enforcement**: Automated, trustless distribution
 
 ---
 
@@ -327,6 +363,72 @@ MoonCreditFi leverages Sui's unique features:
 * **Object Model**: Natural representation of credit profiles and loans
 * **Move Language**: Built-in safety and formal verification
 * **Parallel Execution**: Handle multiple loans simultaneously
+
+---
+
+## 🔧 DePIN Technical Implementation
+
+### Frontend Architecture
+
+**Components:**
+- `DePINFundingComponent.jsx` - Main UI for project funding and revenue claiming
+- `AdvancedDeFi.jsx` - Parent page integrating DePIN with other DeFi features
+
+**Data Hooks:**
+- `useDePINProjects()` - Fetches project data from blockchain
+- `useUserDePINNFTs()` - Fetches user's investment NFTs
+- `useSecureTransaction()` - Handles transaction execution with security checks
+
+**Services:**
+- `DePINService` - Transaction builders for funding and revenue distribution
+- `DePINDataService` - Data fetching and parsing from Sui RPC
+
+### Smart Contract Integration
+
+**Transaction Flow:**
+
+1. **Fund Project**:
+   ```
+   User → DePINService.fundProjectTransaction()
+   → executeSecureTransaction()
+   → Sui Blockchain (depin::fund_project)
+   → NFT Minted → Cache Invalidated → UI Updated
+   ```
+
+2. **Claim Revenue**:
+   ```
+   User → DePINService.distributeRevenueTransaction()
+   → executeSecureTransaction()
+   → Sui Blockchain (depin::distribute_revenue)
+   → Revenue Transferred → Cache Invalidated → UI Updated
+   ```
+
+### Revenue Calculation
+
+```typescript
+// Calculate user's proportional revenue share
+const userContribution = userNFTs
+  .filter(nft => nft.projectId === projectId)
+  .reduce((sum, nft) => sum + nft.amount, 0)
+
+const userRevenueShare = project.totalFunded > 0 && userContribution > 0
+  ? (project.totalRevenue * userContribution) / project.totalFunded
+  : 0
+
+const ownershipPercentage = project.totalFunded > 0
+  ? (userContribution / project.totalFunded) * 100
+  : 0
+```
+
+### Security Features
+
+- **Rate Limiting**: Max 5 transactions per minute per user
+- **Input Validation**: Minimum 0.01 SUI contribution
+- **NFT Verification**: Only NFT owner can claim revenue
+- **Treasury Checks**: Contract validates sufficient balance before distribution
+- **Transaction Guards**: Prevents duplicate submissions and race conditions
+
+For detailed technical specifications, see [DePIN Revenue Implementation Design](.kiro/specs/depin-revenue-implementation/design.md)
 
 ---
 

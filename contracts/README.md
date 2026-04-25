@@ -93,24 +93,45 @@ Core lending operations combining credit profiles and pools with event emission.
 **Security Note**: Loan objects cannot be transferred between addresses. This prevents borrowers from escaping debt by transferring loans to burner addresses. Loans must be held and repaid by the original borrower.
 
 ### 4. DePIN (`depin.move`)
-Decentralized Physical Infrastructure Network funding with NFT-based proof of investment.
+Decentralized Physical Infrastructure Network funding with NFT-based proof of investment and proportional revenue distribution.
 
 **Key Features:**
 - Shared project objects for concurrent funding
 - NFT minting for investors (DepinNFT)
-- Event-driven tracking (ProjectCreated, ProjectFunded, NFTTransferred)
+- Revenue tracking and proportional distribution
+- Event-driven tracking (ProjectCreated, ProjectFunded, RevenueDistributed, NFTTransferred)
 - APY-based returns
+- Treasury management for revenue distribution
 
 **Key Functions:**
 - `create_project()` - Create a new DePIN project (shared object)
 - `fund_project()` - Fund a project and receive NFT proof of investment
+- `distribute_revenue()` - Claim proportional revenue share based on contribution
 - `transfer_nft()` - Transfer investment NFT to another address
+- `add_revenue()` - Add revenue to project treasury (admin function)
 
-**NFT Structure:**
+**NFT Structure (DepinNFT):**
 - `project_id` - Reference to funded project
 - `investor` - Original investor address
 - `amount` - Investment amount in MIST
 - `timestamp` - Investment epoch timestamp
+
+**Project Structure (DepinProject):**
+- `name` - Project name
+- `description` - Project description
+- `target_amount` - Funding goal in MIST
+- `current_amount` - Current funding progress
+- `total_funded` - Cumulative total funded (for revenue calculation)
+- `total_revenue` - Cumulative revenue generated
+- `treasury` - Balance holding revenue for distribution
+- `apy` - Expected annual percentage yield
+- `is_active` - Whether project accepts new funding
+
+**Revenue Distribution:**
+- Revenue share = (total_revenue × user_contribution) / total_funded
+- Proportional to contribution amount
+- Claimable anytime via `distribute_revenue()`
+- Verified through NFT ownership
 
 ## Building
 
@@ -279,11 +300,33 @@ sui client call \
   --package 0xb059616029897f6436640d7c254bcc6130f157c3677bda4eaaccf9f60014fe03 \
   --module depin \
   --function fund_project \
+  --args 0x3ac9433c7bbdce85254a5b0cad3be5f98fb656de63c4308b0f8c4b59a04fff53 <COIN_OBJECT_ID> 0x6 \
+  --gas-budget 10000000
+```
+
+### Claim DePIN Revenue
+
+```bash
+sui client call \
+  --package 0xb059616029897f6436640d7c254bcc6130f157c3677bda4eaaccf9f60014fe03 \
+  --module depin \
+  --function distribute_revenue \
+  --args 0x3ac9433c7bbdce85254a5b0cad3be5f98fb656de63c4308b0f8c4b59a04fff53 <NFT_OBJECT_ID> 0x6 \
+  --gas-budget 10000000
+```
+
+### Add Revenue to Project (Admin)
+
+```bash
+sui client call \
+  --package 0xb059616029897f6436640d7c254bcc6130f157c3677bda4eaaccf9f60014fe03 \
+  --module depin \
+  --function add_revenue \
   --args 0x3ac9433c7bbdce85254a5b0cad3be5f98fb656de63c4308b0f8c4b59a04fff53 <COIN_OBJECT_ID> \
   --gas-budget 10000000
 ```
 
-**Note**: Replace `<COIN_OBJECT_ID>`, `<PROFILE_ID>`, and `<AMOUNT_IN_MIST>` with actual values.
+**Note**: Replace `<COIN_OBJECT_ID>`, `<PROFILE_ID>`, `<NFT_OBJECT_ID>`, and `<AMOUNT_IN_MIST>` with actual values. The Clock object at `0x6` is a shared system object on Sui.
 
 ## Security Considerations
 
@@ -305,11 +348,19 @@ The lending pool uses Sui's `Balance<SUI>` type to actually hold coins rather th
 The lending pool and DePIN projects are shared objects, allowing multiple users to interact with them concurrently without ownership transfers.
 
 ### Why Events?
-Events are emitted for all critical operations (deposits, withdrawals, borrows, repayments, funding) to enable:
+Events are emitted for all critical operations (deposits, withdrawals, borrows, repayments, funding, revenue distribution) to enable:
 - Frontend tracking of user positions
 - Analytics and monitoring
 - Audit trails
 - Off-chain indexing
+
+### DePIN Revenue Distribution Model
+The DePIN module implements proportional revenue sharing:
+- **Tracking**: Projects track both `total_funded` (cumulative) and `total_revenue` (cumulative)
+- **Calculation**: User share = (total_revenue × user_contribution) / total_funded
+- **Verification**: NFT ownership proves contribution amount
+- **Distribution**: Revenue stored in project treasury, distributed on-demand
+- **Transparency**: All distributions emit `RevenueDistributedEvent` for tracking
 
 ## Common Issues
 
