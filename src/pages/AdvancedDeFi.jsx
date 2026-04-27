@@ -5,7 +5,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import RiskPoolSelector from '@/components/RiskPoolSelector';
 import MudarabahPoolInterface from '@/components/MudarabahPoolInterface';
-import DePINFundingComponent from '@/components/DePINFundingComponent';
 import { useCreditProfile, useInvalidateQueries } from '@/hooks/useContractData';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { useSecureTransaction } from '@/hooks/useSecureTransaction';
@@ -153,7 +152,7 @@ const AdvancedDeFi = () => {
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold mooncreditfi-glow">Advanced DeFi Features</h1>
         <p className="text-muted-foreground mt-2">
-          Access risk-based lending pools, Islamic finance, and DePIN revenue sharing
+          Access risk-based lending pools and Islamic finance
         </p>
       </div>
 
@@ -206,10 +205,9 @@ const AdvancedDeFi = () => {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="risk-pools">Risk Pools</TabsTrigger>
           <TabsTrigger value="mudarabah">Mudarabah</TabsTrigger>
-          <TabsTrigger value="depin">DePIN Revenue</TabsTrigger>
         </TabsList>
 
         <TabsContent value="risk-pools" className="space-y-4">
@@ -228,10 +226,6 @@ const AdvancedDeFi = () => {
             onDistributeProfit={handleMudarabahDistribute}
             isLoading={isProcessing}
           />
-        </TabsContent>
-
-        <TabsContent value="depin" className="space-y-4">
-          <DePINFundingComponent isLoading={isProcessing} />
         </TabsContent>
       </Tabs>
     </div>

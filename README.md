@@ -146,16 +146,34 @@ DePIN (Decentralized Physical Infrastructure Network) enables community funding 
 
 ### Example Projects
 
-* 🌞 **Solar Grid Ghana**
-
-  * Target: 50,000 SUI
-  * APY: 8–12%
+* 🌞 **Solar Farm Network**
+  * Target: 100,000 SUI
+  * APY: 8%
+  * Category: Solar
   * Status: Active
 
-* 💻 **Edge Compute Lagos**
+* 🏙️ **Smart City Sensors**
+  * Target: 50,000 SUI
+  * APY: 12%
+  * Category: IoT
+  * Status: Active
 
-  * Target: 30,000 SUI
-  * APY: 10–15%
+* 📡 **5G Hotspot Network**
+  * Target: 75,000 SUI
+  * APY: 9.5%
+  * Category: Wireless
+  * Status: Active
+
+* 💾 **Distributed Storage Grid**
+  * Target: 60,000 SUI
+  * APY: 8.5%
+  * Category: Storage
+  * Status: Active
+
+* ⚡ **EV Charging Stations**
+  * Target: 80,000 SUI
+  * APY: 11%
+  * Category: EV
   * Status: Active
 
 ---
@@ -281,11 +299,21 @@ Functions:
 
 * `create_project()` - Create DePIN project (name, description, target, APY)
 * `fund_project()` - Fund project & receive NFT (uses Coin<SUI>)
+* `distribute_revenue()` - Distribute proportional revenue to NFT holders
 * `transfer_nft()` - Transfer investment NFT
 * `get_project_name()` - Get project name
 * `get_project_target()` - Get funding target
 * `get_project_current()` - Get current funding
 * `get_project_apy()` - Get project APY
+
+**Multiple Projects Supported:**
+- Solar Farm Network (Solar energy infrastructure)
+- Smart City Sensors (IoT monitoring network)
+- 5G Hotspot Network (Wireless infrastructure)
+- Distributed Storage Grid (Data storage network)
+- EV Charging Stations (Electric vehicle infrastructure)
+
+See [scripts/README-DEPIN.md](scripts/README-DEPIN.md) for project creation guide.
 
 ---
 

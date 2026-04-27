@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -18,9 +19,11 @@ import { Badge } from '@/components/ui/badge';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { useSecureTransaction } from '@/hooks/useSecureTransaction';
 import { useCreditProfile, useMaxBorrowLimit, useLendingPool, useInvalidateQueries, useUserLoans, useUserBalance, useCollateralVault } from '@/hooks/useContractData';
-import { BorrowingService, CreditProfileService, ValidationService, ErrorService, CollateralService } from '@/services/contractService';
+import { BorrowingService, CreditProfileService, ValidationService, ErrorService, CollateralService, RiskPoolService } from '@/services/contractService';
 import { CollateralVaultDataService } from '@/services/dataService';
 import { EXPLORER_URL } from '@/config/sui';
+import RiskPoolSelector from '@/components/RiskPoolSelector';
+import { useQueryClient } from '@tanstack/react-query';
 
 const BorrowProduction = () => {
   const account = useCurrentAccount();
@@ -31,6 +34,7 @@ const BorrowProduction = () => {
   const [repayAmount, setRepayAmount] = useState('');
   const [loanDuration, setLoanDuration] = useState(30); // Default 30 days
   const [selectedLoanId, setSelectedLoanId] = useState(null); // For repayment
+  const [activeTab, setActiveTab] = useState('standard');
 
   // Fetch data from blockchain
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useCreditProfile();
@@ -40,11 +44,13 @@ const BorrowProduction = () => {
   const { data: vault, isLoading: isLoadingVault } = useCollateralVault();
   const { maxBorrowLimit, creditScore, creditRating, hasProfile } = useMaxBorrowLimit();
   const { invalidateAll } = useInvalidateQueries();
+  const queryClient = useQueryClient();
 
   // SECURITY: Use secure transaction execution
   const { executeSecureTransaction, lastDigest, isPending, isConfirming } = useSecureTransaction();
 
   const hasVault = !!vault;
+  const userReputation = profile?.reputation || 500;
 
   // Active loan data - prioritize profile.debt (on-chain source of truth)
   const currentDebt = profile?.debt || 0;
@@ -238,6 +244,69 @@ const BorrowProduction = () => {
     }
   };
 
+  const handleRiskPoolDeposit = async (pool, amount) => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const tx = RiskPoolService.depositToRiskPoolTransaction(pool.id, amount);
+      
+      await executeSecureTransaction(tx, {
+        type: 'riskPoolDeposit',
+        validationParams: { amount, pool },
+        onSuccess: () => {
+          toast.success(`Successfully deposited ${amount} SUI to ${pool.name}`);
+          setTimeout(() => {
+            invalidateAll();
+            queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+          }, 2000);
+        },
+        onError: (error) => {
+          const friendlyError = ErrorService.getUserFriendlyError(error);
+          toast.error(friendlyError.message);
+        },
+      });
+    } catch (error) {
+      console.error('Risk pool deposit error:', error);
+    }
+  };
+
+  const handleRiskPoolBorrow = async (pool, amount) => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (!profile?.objectId) {
+      toast.error('Please create a credit profile first');
+      return;
+    }
+
+    try {
+      const tx = RiskPoolService.borrowFromRiskPoolTransaction(pool.id, profile.objectId, amount);
+      
+      await executeSecureTransaction(tx, {
+        type: 'riskPoolBorrow',
+        validationParams: { amount, pool, profile },
+        onSuccess: () => {
+          toast.success(`Successfully borrowed ${amount} SUI from ${pool.name}`);
+          setTimeout(() => {
+            invalidateAll();
+            queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+          }, 2000);
+        },
+        onError: (error) => {
+          const friendlyError = ErrorService.getUserFriendlyError(error);
+          toast.error(friendlyError.message);
+        },
+      });
+    } catch (error) {
+      console.error('Risk pool borrow error:', error);
+    }
+  };
+
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
@@ -274,63 +343,71 @@ const BorrowProduction = () => {
         </Alert>
       )}
 
-      {/* No Vault Alert - Guide users to deposit first */}
-      {isConnected && hasProfile && !hasVault && !isLoadingVault && (
-        <Alert>
-          <Shield className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-2">
-              <p className="font-medium">Credit-Based Borrowing Available</p>
-              <p className="text-sm">Collateral requirements depend on your credit score. Score 750+ = No collateral needed! Score 650-749 = 25% collateral. Score 550-649 = 50% collateral. Score 450-549 = 100% collateral.</p>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Tabs for Standard and Risk-Based Borrowing */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="standard">Standard Borrowing</TabsTrigger>
+          <TabsTrigger value="risk-pools">Risk-Based Pools</TabsTrigger>
+        </TabsList>
 
-      {/* Low Collateral Warning */}
-      {isConnected && hasProfile && hasVault && borrowAmount && parseFloat(borrowAmount) > 0 && (() => {
-        const borrowAmountNum = parseFloat(borrowAmount);
-        const score = profile?.score || 500;
-        let requiredRatio = 0;
-        
-        if (score >= 750) {
-          requiredRatio = 0;
-        } else if (score >= 650) {
-          requiredRatio = 0.25;
-        } else if (score >= 550) {
-          requiredRatio = 0.50;
-        } else if (score >= 450) {
-          requiredRatio = 1.0;
-        } else {
-          requiredRatio = 1.5;
-        }
-        
-        const creditBasedReq = (borrowAmountNum + (vault?.borrowedAmount || 0)) * requiredRatio;
-        const hasEnough = vault.collateralAmount >= creditBasedReq;
-        
-        if (!hasEnough && requiredRatio > 0) {
-          const needed = creditBasedReq - vault.collateralAmount;
-          return (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
+        <TabsContent value="standard" className="space-y-6 mt-6">
+          {/* No Vault Alert - Guide users to deposit first */}
+          {isConnected && hasProfile && !hasVault && !isLoadingVault && (
+            <Alert>
+              <Shield className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-2">
-                  <p className="font-medium">Insufficient Collateral</p>
-                  <p className="text-sm">
-                    You need {needed.toFixed(4)} more SUI as collateral. Go to the Lend page to deposit more.
-                  </p>
-                  <p className="text-xs">
-                    Current: {vault.collateralAmount.toFixed(4)} SUI | Required: {creditBasedReq.toFixed(4)} SUI ({(requiredRatio * 100).toFixed(0)}%)
-                  </p>
+                  <p className="font-medium">Credit-Based Borrowing Available</p>
+                  <p className="text-sm">Collateral requirements depend on your credit score. Score 750+ = No collateral needed! Score 650-749 = 25% collateral. Score 550-649 = 50% collateral. Score 450-549 = 100% collateral.</p>
                 </div>
               </AlertDescription>
             </Alert>
-          );
-        }
-        return null;
-      })()}
+          )}
 
-      <div className="grid md:grid-cols-2 gap-6">
+          {/* Low Collateral Warning */}
+          {isConnected && hasProfile && hasVault && borrowAmount && parseFloat(borrowAmount) > 0 && (() => {
+            const borrowAmountNum = parseFloat(borrowAmount);
+            const score = profile?.score || 500;
+            let requiredRatio = 0;
+            
+            if (score >= 750) {
+              requiredRatio = 0;
+            } else if (score >= 650) {
+              requiredRatio = 0.25;
+            } else if (score >= 550) {
+              requiredRatio = 0.50;
+            } else if (score >= 450) {
+              requiredRatio = 1.0;
+            } else {
+              requiredRatio = 1.5;
+            }
+            
+            const creditBasedReq = (borrowAmountNum + (vault?.borrowedAmount || 0)) * requiredRatio;
+            const hasEnough = vault.collateralAmount >= creditBasedReq;
+            
+            if (!hasEnough && requiredRatio > 0) {
+              const needed = creditBasedReq - vault.collateralAmount;
+              return (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <p className="font-medium">Insufficient Collateral</p>
+                      <p className="text-sm">
+                        You need {needed.toFixed(4)} more SUI as collateral. Go to the Lend page to deposit more.
+                      </p>
+                      <p className="text-xs">
+                        Current: {vault.collateralAmount.toFixed(4)} SUI | Required: {creditBasedReq.toFixed(4)} SUI ({(requiredRatio * 100).toFixed(0)}%)
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              );
+            }
+            return null;
+          })()}
+
+          <div className="grid md:grid-cols-2 gap-6">
         {/* Borrow Form */}
         <motion.div variants={itemVariants}>
           <Card className="card-glow">
@@ -677,6 +754,56 @@ const BorrowProduction = () => {
           </CardContent>
         </Card>
       </motion.div>
+        </TabsContent>
+
+        <TabsContent value="risk-pools" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Credit Metrics</CardTitle>
+              <CardDescription>
+                Your reputation score determines access to different risk pools
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingProfile ? (
+                <div className="text-center py-4 text-muted-foreground">Loading profile...</div>
+              ) : profile ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Credit Score</p>
+                    <p className="font-bold text-lg">{profile.score || 0}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Reputation</p>
+                    <p className="font-bold text-lg">{userReputation}</p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Risk Level</p>
+                    <p className="font-bold text-lg">
+                      {profile.risk_level === 1 ? 'Low' : profile.risk_level === 2 ? 'Medium' : 'High'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Total Loans</p>
+                    <p className="font-bold text-lg">{profile.loanCount || 0}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No credit profile found. Create one to access risk pools.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <RiskPoolSelector
+            userReputation={userReputation}
+            onDeposit={handleRiskPoolDeposit}
+            onBorrow={handleRiskPoolBorrow}
+            isLoading={isProcessing}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Loan Activity Card */}
       <motion.div variants={itemVariants}>

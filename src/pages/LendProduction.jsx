@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCurrentAccount } from '@mysten/dapp-kit';
 import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -19,9 +20,11 @@ import { motion } from 'framer-motion';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { useSecureTransaction } from '@/hooks/useSecureTransaction';
 import { useLendingPool, useUserBalance, useUserDeposits, useInvalidateQueries, useCollateralVault } from '@/hooks/useContractData';
-import { LendingPoolService, ValidationService, ErrorService, CollateralService } from '@/services/contractService';
+import { LendingPoolService, ValidationService, ErrorService, CollateralService, MudarabahService } from '@/services/contractService';
 import { CollateralVaultDataService } from '@/services/dataService';
 import { EXPLORER_URL } from '@/config/sui';
+import MudarabahPoolInterface from '@/components/MudarabahPoolInterface';
+import { useQueryClient } from '@tanstack/react-query';
 
 const LendProduction = () => {
   const account = useCurrentAccount();
@@ -29,6 +32,7 @@ const LendProduction = () => {
   const { addNotification } = useNotifications();
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [activeTab, setActiveTab] = useState('standard');
 
   // Fetch data from blockchain
   const { data: pool, isLoading: isLoadingPool, error: poolError } = useLendingPool();
@@ -36,6 +40,7 @@ const LendProduction = () => {
   const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
   const { data: vault, isLoading: isLoadingVault } = useCollateralVault();
   const { invalidateAll } = useInvalidateQueries();
+  const queryClient = useQueryClient();
 
   // SECURITY: Use secure transaction execution
   const { executeSecureTransaction, lastDigest, isPending, isConfirming } = useSecureTransaction();
@@ -212,6 +217,65 @@ const LendProduction = () => {
     }
   };
 
+  const handleMudarabahContribute = async (pool, amount) => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const tx = MudarabahService.contributeToMudarabahTransaction(pool.id, amount);
+      
+      await executeSecureTransaction(tx, {
+        type: 'mudarabahContribute',
+        validationParams: { amount, pool },
+        onSuccess: () => {
+          toast.success(`Successfully contributed ${amount} SUI to Mudarabah pool`);
+          setTimeout(() => {
+            invalidateAll();
+            queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+          }, 2000);
+        },
+        onError: (error) => {
+          const friendlyError = ErrorService.getUserFriendlyError(error);
+          toast.error(friendlyError.message);
+        },
+      });
+    } catch (error) {
+      console.error('Mudarabah contribute error:', error);
+    }
+  };
+
+  const handleMudarabahDistribute = async (pool) => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const tx = MudarabahService.distributeProfitTransaction(pool.id);
+      
+      await executeSecureTransaction(tx, {
+        type: 'mudarabahDistribute',
+        validationParams: { pool },
+        onSuccess: () => {
+          toast.success('Profit distributed successfully!');
+          setTimeout(() => {
+            invalidateAll();
+            queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+            queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
+          }, 2000);
+        },
+        onError: (error) => {
+          const friendlyError = ErrorService.getUserFriendlyError(error);
+          toast.error(friendlyError.message);
+        },
+      });
+    } catch (error) {
+      console.error('Mudarabah distribute error:', error);
+    }
+  };
+
   const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
@@ -246,8 +310,16 @@ const LendProduction = () => {
         </Alert>
       )}
 
-      {/* Pool Stats Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      {/* Tabs for Standard and Islamic Finance */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="standard">Standard Lending</TabsTrigger>
+          <TabsTrigger value="mudarabah">Islamic Finance</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="standard" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          {/* Pool Stats Cards */}
+          <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <Card className="card-glow">
           <CardContent className="p-3 sm:pt-6 sm:pb-6 sm:px-6">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
@@ -528,6 +600,17 @@ const LendProduction = () => {
           </CardContent>
         </Card>
       </motion.div>
+        </TabsContent>
+
+        <TabsContent value="mudarabah" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+          <MudarabahPoolInterface
+            userAddress={account?.address}
+            onContribute={handleMudarabahContribute}
+            onDistributeProfit={handleMudarabahDistribute}
+            isLoading={isProcessing}
+          />
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 };

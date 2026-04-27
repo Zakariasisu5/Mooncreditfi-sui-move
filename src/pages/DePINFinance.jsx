@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,16 +7,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import StatsCard from '@/components/StatsCard';
 import { useWalletContext } from '@/contexts/WalletContext';
 import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { Zap, Sun, Wifi, Car, DollarSign, TrendingUp, Users, Loader2, Shield, Award, ExternalLink, Search, Filter, X } from 'lucide-react';
+import { Zap, Sun, Wifi, Car, DollarSign, TrendingUp, Users, Loader2, Shield, Award, ExternalLink, Search, Filter, X, Gift, Info } from 'lucide-react';
 import { EXPLORER_URL, DEPIN_PROJECTS } from '@/config/sui';
-import { useDePINProjects, useUserDePINNFTs, useLendingPool } from '@/hooks/useContractData';
+import { useDePINProjects, useUserDePINNFTs, useLendingPool, useInvalidateQueries } from '@/hooks/useContractData';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { DePINService } from '@/services/contractService';
+import { useQueryClient } from '@tanstack/react-query';
 
 const DePINFinance = () => {
   const [selectedProject, setSelectedProject] = useState(null);
@@ -28,8 +30,12 @@ const DePINFinance = () => {
   const [minROI, setMinROI] = useState(0);
   const [minProgress, setMinProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [claimingRevenue, setClaimingRevenue] = useState(null); // Track which project is claiming
+  const [selectedRevenueProject, setSelectedRevenueProject] = useState(null); // Track selected project for revenue tracking
   const { isConnected, account: address } = useWalletContext();
   const { addNotification } = useNotifications();
+  const { invalidateAll } = useInvalidateQueries();
+  const queryClient = useQueryClient();
 
   // Detect mobile
   useEffect(() => {
@@ -56,19 +62,45 @@ const DePINFinance = () => {
   const lendingTVL = pool?.totalDeposited || 0;
   const totalTVL = lendingTVL + depinTVL;
 
-  // Convert on-chain projects to display format
-  const projects = depinProjects ? depinProjects.map(project => ({
-    id: project.objectId,
-    name: project.name,
-    category: project.category,
-    description: project.description,
-    funding_goal: project.targetAmount,
-    funding_current: project.currentAmount,
-    funding_progress: project.fundingProgress,
-    roi: project.apy,
-    status: project.isActive ? 'active' : 'inactive',
-    image: '/placeholder.svg'
-  })) : [];
+  // Convert on-chain projects to display format with revenue tracking
+  const projects = depinProjects ? depinProjects.map(project => {
+    // Calculate user's contribution to this project
+    const userContribution = userNFTs?.reduce((total, nft) => {
+      if (nft.projectId === project.objectId) {
+        return total + nft.amount;
+      }
+      return total;
+    }, 0) || 0;
+
+    // Calculate user's revenue share (proportional distribution)
+    const userRevenueShare = project.totalFunded > 0 && userContribution > 0
+      ? (project.totalRevenue * userContribution) / project.totalFunded
+      : 0;
+
+    // Calculate ownership percentage
+    const ownershipPercentage = project.totalFunded > 0
+      ? (userContribution / project.totalFunded) * 100
+      : 0;
+
+    return {
+      id: project.objectId,
+      name: project.name,
+      category: project.category,
+      description: project.description,
+      funding_goal: project.targetAmount,
+      funding_current: project.currentAmount,
+      funding_progress: project.fundingProgress,
+      roi: project.apy,
+      status: project.isActive ? 'active' : 'inactive',
+      image: '/placeholder.svg',
+      // Revenue tracking fields
+      totalFunded: project.totalFunded || 0,
+      totalRevenue: project.totalRevenue || 0,
+      userContribution,
+      userRevenueShare,
+      ownershipPercentage,
+    };
+  }) : [];
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
@@ -77,8 +109,49 @@ const DePINFinance = () => {
     'Energy Storage': Zap, 'Telecom': Wifi, 'Other': Zap
   };
 
-  const handleClaimYield = async () => {
-    toast.info('Yield claiming coming soon');
+  const handleClaimRevenue = async (project) => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (!project.userRevenueShare || project.userRevenueShare === 0) {
+      toast.error('No revenue to claim');
+      return;
+    }
+
+    if (!userNFTs || userNFTs.length === 0) {
+      toast.error('No DePIN NFT found');
+      return;
+    }
+
+    // Find user's NFT for this project
+    const userNFT = userNFTs.find(nft => nft.projectId === project.id);
+    if (!userNFT) {
+      toast.error('No NFT found for this project');
+      return;
+    }
+
+    setClaimingRevenue(project.id);
+    try {
+      // TODO: Implement revenue distribution transaction
+      // const tx = DePINService.distributeRevenueTransaction(project.id, userNFT.objectId);
+      // await executeTransaction(tx, { ... });
+      
+      toast.info('Revenue distribution transaction coming soon');
+      
+      // Simulate success for now
+      setTimeout(() => {
+        invalidateAll();
+        queryClient.invalidateQueries({ queryKey: ['depinProjects'] });
+        queryClient.invalidateQueries({ queryKey: ['userDePINNFTs'] });
+        setClaimingRevenue(null);
+      }, 2000);
+    } catch (error) {
+      console.error('Revenue claim error:', error);
+      toast.error('Revenue claim failed');
+      setClaimingRevenue(null);
+    }
   };
 
   const handleFundClick = (project) => {
@@ -171,20 +244,175 @@ const DePINFinance = () => {
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {userNFTs.map((nft, index) => (
-                    <div key={nft.objectId} className="p-3 sm:p-4 bg-muted/50 rounded-lg border border-border">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <Badge variant="secondary" className="mb-2 text-xs">NFT #{index + 1}</Badge>
-                          <p className="text-xs sm:text-sm text-muted-foreground">Investment Amount</p>
-                          <p className="text-lg sm:text-xl font-bold">{nft.amount.toFixed(4)} SUI</p>
+                  {userNFTs.map((nft, index) => {
+                    const project = projects.find(p => p.id === nft.projectId);
+                    return (
+                      <div key={nft.objectId} className="p-3 sm:p-4 bg-muted/50 rounded-lg border border-border">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <Badge variant="secondary" className="mb-2 text-xs">NFT #{index + 1}</Badge>
+                            <p className="text-xs sm:text-sm text-muted-foreground">Investment Amount</p>
+                            <p className="text-lg sm:text-xl font-bold">{nft.amount.toFixed(4)} SUI</p>
+                          </div>
+                        </div>
+                        {project && (
+                          <div className="space-y-1 mb-2">
+                            <p className="text-xs font-medium">{project.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{project.category}</p>
+                          </div>
+                        )}
+                        <div className="text-[10px] sm:text-xs text-muted-foreground">
+                          <p>Project: {nft.projectId.slice(0, 8)}...{nft.projectId.slice(-6)}</p>
                         </div>
                       </div>
-                      <div className="text-[10px] sm:text-xs text-muted-foreground">
-                        <p>Project: {nft.projectId.slice(0, 8)}...{nft.projectId.slice(-6)}</p>
-                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Revenue Tracking Section */}
+          {isConnected && projects.some(p => p.userContribution > 0) && (
+            <Card className="card-glow border-green-500/20">
+              <CardHeader className="p-4 sm:p-6">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                    Revenue Tracking & Distribution
+                  </CardTitle>
+                  <Badge variant="outline" className="text-green-600 border-green-600">
+                    Proportional Shares
+                  </Badge>
+                </div>
+                <CardDescription className="text-xs sm:text-sm mt-2">
+                  Track project revenue and claim your proportional share based on your contribution
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+                <div className="space-y-4">
+                  {/* Project Selector */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Project</label>
+                    <Select 
+                      value={selectedRevenueProject || ''} 
+                      onValueChange={setSelectedRevenueProject}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choose a project to view revenue details" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.filter(p => p.userContribution > 0).map((project) => {
+                          const Icon = categoryIcons[project.category] || Zap;
+                          return (
+                            <SelectItem key={project.id} value={project.id}>
+                              <div className="flex items-center gap-2">
+                                <Icon className="h-4 w-4" />
+                                <span>{project.name}</span>
+                                <Badge variant="outline" className="ml-2 text-xs">{project.category}</Badge>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Selected Project Revenue Details */}
+                  {selectedRevenueProject && (() => {
+                    const project = projects.find(p => p.id === selectedRevenueProject);
+                    if (!project) return null;
+                    
+                    const Icon = categoryIcons[project.category] || Zap;
+                    const isClaiming = claimingRevenue === project.id;
+                    
+                    return (
+                      <Card className="border-border/50">
+                        <CardContent className="p-4 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-5 w-5 text-primary" />
+                              <div>
+                                <p className="font-semibold">{project.name}</p>
+                                <Badge variant="outline" className="text-xs mt-1">{project.category}</Badge>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Revenue Metrics Grid */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 bg-gray-100 dark:bg-gray-900/50 rounded-lg">
+                              <p className="text-xs text-muted-foreground">Total Funded</p>
+                              <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{project.totalFunded.toFixed(2)} SUI</p>
+                            </div>
+                            <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                              <p className="text-xs text-muted-foreground">Total Revenue</p>
+                              <p className="text-sm font-bold text-green-700 dark:text-green-400">{project.totalRevenue.toFixed(2)} SUI</p>
+                            </div>
+                            <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                              <p className="text-xs text-muted-foreground">Your Funding</p>
+                              <p className="text-sm font-bold text-blue-700 dark:text-blue-400">{project.userContribution.toFixed(2)} SUI</p>
+                            </div>
+                            <div className="p-3 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                              <p className="text-xs text-muted-foreground">Your Revenue Share</p>
+                              <p className="text-sm font-bold text-purple-700 dark:text-purple-400">{project.userRevenueShare.toFixed(2)} SUI</p>
+                            </div>
+                          </div>
+
+                          {/* Ownership & Claim Section */}
+                          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border border-primary/20">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Proportional Share</p>
+                              <p className="text-xl font-bold text-primary">
+                                {project.ownershipPercentage.toFixed(2)}%
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                of total project funding
+                              </p>
+                            </div>
+                            <Button
+                              onClick={() => handleClaimRevenue(project)}
+                              disabled={isClaiming || project.userRevenueShare === 0}
+                              size="sm"
+                              className="min-w-[120px]"
+                            >
+                              {isClaiming ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Claiming...
+                                </>
+                              ) : (
+                                <>
+                                  <Gift className="h-4 w-4 mr-2" />
+                                  Claim Revenue
+                                </>
+                              )}
+                            </Button>
+                          </div>
+
+                          {/* Info Alert */}
+                          {project.totalRevenue === 0 && (
+                            <Alert>
+                              <Info className="h-4 w-4" />
+                              <AlertDescription className="text-xs">
+                                No revenue has been generated yet. Revenue will be distributed proportionally to all contributors.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
+
+                  {/* Placeholder when no project selected */}
+                  {!selectedRevenueProject && (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <DollarSign className="h-12 w-12 text-muted-foreground mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        Select a project above to view revenue details and claim your share
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

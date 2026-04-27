@@ -58,7 +58,36 @@ export const CREDIT_PROFILE_OBJECT_ID = ''; // User-specific, created on demand
 
 // DePIN Projects - Multiple infrastructure projects (Credit-Based Lending System)
 export const DEPIN_PROJECTS = [
-  { id: '0x63289bc0eb8e219e9207832d8cc9668f432386cd87d604a6cbbe0de3055629ea', category: 'Solar', name: 'Solar Farm Network' },
+  { 
+    id: '0x63289bc0eb8e219e9207832d8cc9668f432386cd87d604a6cbbe0de3055629ea', 
+    category: 'Solar', 
+    name: 'Solar Farm Network',
+    description: 'Decentralized solar energy infrastructure across Southeast Asia'
+  },
+  { 
+    id: '0x9e46dad8a35bf32eba1fa0f06785c9e14f990720cac3226ec5cca1be3eecd9c3', 
+    category: 'IoT', 
+    name: 'Smart City Sensors',
+    description: 'IoT sensor network for urban environmental monitoring'
+  },
+  { 
+    id: '0xae7343411d9ed2e7638d51174a17d62228a544d709d3b2a04ea26a92d69dfa1b', 
+    category: 'Wireless', 
+    name: '5G Hotspot Network',
+    description: 'Community-owned 5G wireless infrastructure deployment'
+  },
+  { 
+    id: '0x4e4235240bfd85f0e4da152a9117a9e8ec7fd8fa9e9e318f490ce33cff596896', 
+    category: 'Storage', 
+    name: 'Distributed Storage Grid',
+    description: 'Decentralized data storage infrastructure network'
+  },
+  { 
+    id: '0x904f8c5b060ab3c58792a9acfb9e81d29457b6725877f809ce1eec11f0d92804', 
+    category: 'EV', 
+    name: 'EV Charging Stations',
+    description: 'Electric vehicle charging infrastructure network'
+  },
 ];
 
 // Legacy single project ID (kept for backward compatibility)

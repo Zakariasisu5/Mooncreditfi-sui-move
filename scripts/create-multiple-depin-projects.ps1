@@ -1,114 +1,148 @@
 # PowerShell script to create multiple DePIN projects on Sui testnet
 
-Write-Host "Creating Multiple DePIN Projects on Sui Testnet..." -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "Creating Multiple DePIN Projects" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Package ID - Updated
-$PACKAGE_ID = "0xdab56ace7345a98268bd1c2dde725f94256450386d383f3f834f2bb4711c9fdf"
+# Package ID - Update this with your deployed package ID
+$PACKAGE_ID = "0x1a464477cbda05cedfe2bffefdf05a23203c0bde47d98efdcd487f8a721c4dbf"
 
-# Define multiple DePIN projects
-$projects = @(
+# Array of projects to create
+$PROJECTS = @(
     @{
-        Name = "5G Network Infrastructure"
-        Description = "Decentralized 5G network deployment for urban connectivity"
-        Target = 250000000000000  # 250,000 SUI
-        APY = 1200  # 12%
-        Category = "Telecom"
-    },
-    @{
-        Name = "IoT Sensor Network"
-        Description = "Global IoT sensor network for environmental monitoring"
-        Target = 150000000000000  # 150,000 SUI
-        APY = 950  # 9.5%
         Category = "IoT"
+        Name = "Smart City Sensors"
+        Description = "IoT sensor network for urban environmental monitoring"
+        Target = "50000000000000"
+        APY = "1200"
     },
     @{
+        Category = "Wireless"
+        Name = "5G Hotspot Network"
+        Description = "Community-owned 5G wireless infrastructure deployment"
+        Target = "75000000000000"
+        APY = "950"
+    },
+    @{
+        Category = "Storage"
+        Name = "Distributed Storage Grid"
+        Description = "Decentralized data storage infrastructure network"
+        Target = "60000000000000"
+        APY = "850"
+    },
+    @{
+        Category = "EV"
         Name = "EV Charging Stations"
         Description = "Electric vehicle charging infrastructure network"
-        Target = 500000000000000  # 500,000 SUI
-        APY = 850  # 8.5%
-        Category = "Mobility"
-    },
-    @{
-        Name = "Community WiFi Hotspots"
-        Description = "Decentralized WiFi hotspot network for public internet access"
-        Target = 80000000000000  # 80,000 SUI
-        APY = 1100  # 11%
-        Category = "WiFi"
-    },
-    @{
-        Name = "Battery Storage Grid"
-        Description = "Distributed energy storage system for renewable power"
-        Target = 300000000000000  # 300,000 SUI
-        APY = 900  # 9%
-        Category = "Energy Storage"
+        Target = "80000000000000"
+        APY = "1100"
     }
 )
 
-$createdProjects = @()
+# Store created project IDs
+$PROJECT_IDS = @()
 
-foreach ($project in $projects) {
+# Create each project
+foreach ($project in $PROJECTS) {
+    Write-Host "----------------------------------------" -ForegroundColor Yellow
     Write-Host "Creating: $($project.Name)" -ForegroundColor Yellow
+    Write-Host "----------------------------------------" -ForegroundColor Yellow
     Write-Host "  Category: $($project.Category)"
-    Write-Host "  Target: $([math]::Round($project.Target / 1000000000, 0)) SUI"
-    Write-Host "  APY: $($project.APY / 100)%"
+    Write-Host "  Description: $($project.Description)"
+    $targetSui = [math]::Round([decimal]$project.Target / 1000000000, 2)
+    $apyPercent = [math]::Round([decimal]$project.APY / 100, 2)
+    Write-Host "  Target: $targetSui SUI"
+    Write-Host "  APY: $apyPercent%"
     Write-Host ""
+    
+    # Create the project
+    Write-Host "Executing transaction..." -ForegroundColor Green
     
     try {
         $result = sui client call `
             --package $PACKAGE_ID `
             --module depin `
             --function create_project `
-            --args "$($project.Name)" "$($project.Description)" $($project.Target) $($project.APY) `
+            --args $project.Name $project.Description $project.Target $project.APY "0x6" `
             --gas-budget 100000000 `
-            --json 2>&1
+            --json 2>&1 | ConvertFrom-Json
         
         if ($LASTEXITCODE -eq 0) {
-            $jsonResult = $result | ConvertFrom-Json
-            $projectId = ($jsonResult.objectChanges | Where-Object { $_.type -eq "created" -and $_.objectType -like "*DepinProject*" }).objectId
+            Write-Host "Transaction successful!" -ForegroundColor Green
             
-            if ($projectId) {
-                Write-Host "  Success! Project ID: $projectId" -ForegroundColor Green
-                $createdProjects += @{
-                    Name = $project.Name
+            # Extract the created DePIN project object ID
+            $projectObj = $result.objectChanges | Where-Object { 
+                $_.type -eq "created" -and $_.objectType -like "*DepinProject*" 
+            }
+            
+            if ($projectObj) {
+                $projectId = $projectObj.objectId
+                $PROJECT_IDS += @{
+                    Id = $projectId
                     Category = $project.Category
-                    ObjectId = $projectId
-                    Digest = $jsonResult.digest
+                    Name = $project.Name
+                    Description = $project.Description
                 }
+                Write-Host "Project Object ID: $projectId" -ForegroundColor Cyan
+                
+                # Show transaction digest
+                $digest = $result.digest
+                Write-Host "View on Explorer: https://suiscan.xyz/testnet/tx/$digest" -ForegroundColor Blue
             } else {
-                Write-Host "  Warning: Could not extract project ID" -ForegroundColor Yellow
+                Write-Host "Warning: Could not extract project ID" -ForegroundColor Yellow
             }
         } else {
-            Write-Host "  Failed to create project" -ForegroundColor Red
+            Write-Host "Transaction failed!" -ForegroundColor Red
+            Write-Host $result
         }
     } catch {
-        Write-Host "  Error: $_" -ForegroundColor Red
+        Write-Host "Error: $_" -ForegroundColor Red
     }
     
     Write-Host ""
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 2  # Wait between transactions
 }
 
 # Summary
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Summary: Created $($createdProjects.Count) DePIN Projects" -ForegroundColor Green
+Write-Host "Summary" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
+Write-Host "Created $($PROJECT_IDS.Count) DePIN projects:" -ForegroundColor Green
+Write-Host ""
 
-foreach ($proj in $createdProjects) {
-    Write-Host "$($proj.Name) ($($proj.Category))" -ForegroundColor White
-    Write-Host "  Object ID: $($proj.ObjectId)" -ForegroundColor Cyan
-    Write-Host "  Explorer: https://suiscan.xyz/testnet/object/$($proj.ObjectId)" -ForegroundColor Blue
-    Write-Host ""
+foreach ($projectInfo in $PROJECT_IDS) {
+    Write-Host "  $($projectInfo.Category) - $($projectInfo.Name)" -ForegroundColor Yellow
+    Write-Host "    $($projectInfo.Id)" -ForegroundColor Cyan
 }
 
-# Generate config update
-if ($createdProjects.Count -gt 0) {
-    Write-Host "Update your src/config/sui.js with these project IDs:" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "export const DEPIN_PROJECTS = [" -ForegroundColor White
-    foreach ($proj in $createdProjects) {
-        Write-Host "  { id: '$($proj.ObjectId)', category: '$($proj.Category)' }," -ForegroundColor White
-    }
-    Write-Host "];" -ForegroundColor White
+# Generate config code
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Yellow
+Write-Host "Update your src/config/sui.js with:" -ForegroundColor Yellow
+Write-Host "========================================" -ForegroundColor Yellow
+Write-Host ""
+Write-Host 'export const DEPIN_PROJECTS = ['
+
+# Add the existing Solar Farm project first
+Write-Host '  {'
+Write-Host "    id: '0x63289bc0eb8e219e9207832d8cc9668f432386cd87d604a6cbbe0de3055629ea',"
+Write-Host "    category: 'Solar',"
+Write-Host "    name: 'Solar Farm Network',"
+Write-Host "    description: 'Decentralized solar energy infrastructure across Southeast Asia'"
+Write-Host '  },'
+
+# Add newly created projects
+foreach ($projectInfo in $PROJECT_IDS) {
+    Write-Host '  {'
+    Write-Host "    id: '$($projectInfo.Id)',"
+    Write-Host "    category: '$($projectInfo.Category)',"
+    Write-Host "    name: '$($projectInfo.Name)',"
+    Write-Host "    description: '$($projectInfo.Description)'"
+    Write-Host '  },'
 }
+
+Write-Host '];'
+Write-Host ""
+Write-Host "Done!" -ForegroundColor Green

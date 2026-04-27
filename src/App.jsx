@@ -20,7 +20,6 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
 import Whitepaper from "./pages/Whitepaper";
-import DePINFundingComponent from "./components/DePINFundingComponent";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,7 +80,6 @@ const App = () => {
                                 {routes.map(({ to, page: Page }) => (
                                   <Route key={to} path={to} element={<Page />} />
                                 ))}
-                                <Route path="depin" element={<DePINFundingComponent />} />
                               </Routes>
                             </main>
                           </div>

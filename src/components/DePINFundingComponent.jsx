@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Wallet, TrendingUp, Gift, Coins, Award, ExternalLink, Loader2, Info, DollarSign } from 'lucide-react';
 import { EXPLORER_URL, DEPIN_PROJECTS } from '@/config/sui';
@@ -23,14 +24,15 @@ const DePINFundingComponent = ({ isLoading: parentLoading = false }) => {
 
   const [amount, setAmount] = useState('0.01');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedProjectIndex, setSelectedProjectIndex] = useState(0);
 
   // Fetch real DePIN projects from blockchain
   const { data: projects, isLoading: isLoadingProjects } = useDePINProjects(DEPIN_PROJECTS);
   const { data: userNFTs, isLoading: isLoadingNFTs } = useUserDePINNFTs();
 
-  // Get the first project (Solar Farm Network)
-  const project = projects?.[0];
-  const projectId = DEPIN_PROJECTS[0]?.id;
+  // Get the selected project
+  const project = projects?.[selectedProjectIndex];
+  const projectId = DEPIN_PROJECTS[selectedProjectIndex]?.id;
 
   // Calculate user's contribution from NFTs
   const userContribution = userNFTs?.reduce((total, nft) => {
@@ -175,14 +177,52 @@ const DePINFundingComponent = ({ isLoading: parentLoading = false }) => {
 
   return (
     <div className="space-y-6">
+      {/* Project Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Coins className="h-5 w-5 text-primary" />
+            Select DePIN Project
+          </CardTitle>
+          <CardDescription>
+            Choose an infrastructure project to fund
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select 
+            value={selectedProjectIndex.toString()} 
+            onValueChange={(value) => setSelectedProjectIndex(parseInt(value))}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a project" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEPIN_PROJECTS.map((proj, index) => (
+                <SelectItem key={proj.id} value={index.toString()}>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{proj.category}</Badge>
+                    <span>{proj.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {/* Project Info Card */}
       <Card>
         <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-primary" />
-            {project.name}
-          </CardTitle>
-          <CardDescription>{project.description}</CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-primary" />
+              <CardTitle>{project.name}</CardTitle>
+            </div>
+            <Badge variant="secondary">{DEPIN_PROJECTS[selectedProjectIndex]?.category}</Badge>
+          </div>
+          <CardDescription>
+            {DEPIN_PROJECTS[selectedProjectIndex]?.description || project.description}
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

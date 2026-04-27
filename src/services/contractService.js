@@ -565,7 +565,7 @@ export const RiskPoolService = {
     const [coin] = tx.splitCoins(tx.gas, [amountInMist]);
     
     tx.moveCall({
-      target: `${SUI_PACKAGE_ID}::risk_pool::deposit`,
+      target: `${SUI_PACKAGE_ID}::risk_pool::deposit_to_risk_pool`,
       arguments: [
         tx.object(poolId),
         coin,
@@ -587,7 +587,7 @@ export const RiskPoolService = {
     const amountInMist = suiToMist(amountInSui);
     
     tx.moveCall({
-      target: `${SUI_PACKAGE_ID}::risk_pool::borrow`,
+      target: `${SUI_PACKAGE_ID}::risk_pool::borrow_from_risk_pool`,
       arguments: [
         tx.object(poolId),
         tx.object(profileId),
