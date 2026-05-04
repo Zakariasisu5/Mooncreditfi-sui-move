@@ -24,8 +24,11 @@ import Whitepaper from "./pages/Whitepaper";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
+      retry: 2, // Increased from 1 to 2 for better reliability
+      refetchOnWindowFocus: true, // Changed to true to refetch when user returns to tab
+      refetchOnReconnect: true, // Refetch when network reconnects
+      staleTime: 5000, // Data becomes stale after 5 seconds
+      cacheTime: 300000, // Keep unused data in cache for 5 minutes
     },
   },
 });

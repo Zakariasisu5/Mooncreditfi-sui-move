@@ -47,8 +47,15 @@ const Index = () => {
   // Handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await invalidateAll();
-    setTimeout(() => setIsRefreshing(false), 1000);
+    try {
+      await invalidateAll();
+      // Give a moment for queries to refetch
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const containerVariants = {

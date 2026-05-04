@@ -340,9 +340,6 @@ module mooncreditfi::lending_pool {
     }
 
     /// Check if withdrawal is a full withdrawal and return yield info
-    /// Returns (should_claim_yield: bool, yield_amount: u64)
-    /// If withdrawal amount equals principal, returns (true, accumulated_yield)
-    /// Otherwise returns (false, 0)
     public(package) fun check_full_withdrawal(
         pool: &LendingPool,
         user: address,

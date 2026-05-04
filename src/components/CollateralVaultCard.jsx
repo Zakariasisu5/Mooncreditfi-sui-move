@@ -46,8 +46,10 @@ const CollateralVaultCard = () => {
         validationParams: {},
         onSuccess: (digest) => {
           toast.success('Collateral vault created! Now deposit SUI to proceed with borrowing.');
-          // Wait longer for events to be indexed
-          setTimeout(() => invalidateAll(), 3000);
+          // Wait longer for events to be indexed (increased from 3s to 5s)
+          setTimeout(async () => {
+            await invalidateAll();
+          }, 5000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -79,8 +81,10 @@ const CollateralVaultCard = () => {
         onSuccess: (digest) => {
           toast.success(`Deposited ${depositAmount} SUI as collateral`);
           setDepositAmount('');
-          // Wait longer for events to be indexed
-          setTimeout(() => invalidateAll(), 3000);
+          // Wait longer for events to be indexed (increased from 3s to 6s)
+          setTimeout(async () => {
+            await invalidateAll();
+          }, 6000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -117,7 +121,10 @@ const CollateralVaultCard = () => {
         onSuccess: (digest) => {
           toast.success(`Withdrawn ${withdrawAmount} SUI from collateral`);
           setWithdrawAmount('');
-          setTimeout(() => invalidateAll(), 2000);
+          // Wait longer for events to be indexed (increased from 2s to 5s)
+          setTimeout(async () => {
+            await invalidateAll();
+          }, 5000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);

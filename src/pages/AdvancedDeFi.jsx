@@ -37,10 +37,10 @@ const AdvancedDeFi = () => {
         validationParams: { amount, pool },
         onSuccess: () => {
           toast.success(`Successfully deposited ${amount} SUI to ${pool.name}`);
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['riskPools'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -71,10 +71,10 @@ const AdvancedDeFi = () => {
         validationParams: { amount, pool, profile },
         onSuccess: () => {
           toast.success(`Successfully borrowed ${amount} SUI from ${pool.name}`);
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['riskPools'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -100,10 +100,10 @@ const AdvancedDeFi = () => {
         validationParams: { amount, pool },
         onSuccess: () => {
           toast.success(`Successfully contributed ${amount} SUI to Mudarabah pool`);
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -129,11 +129,11 @@ const AdvancedDeFi = () => {
         validationParams: { pool },
         onSuccess: () => {
           toast.success('Profit distributed successfully!');
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
-            queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+            await queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);

@@ -26,8 +26,8 @@ export const useLendingPool = (options = {}) => {
   return useQuery({
     queryKey: ['lendingPool'],
     queryFn: () => LendingPoolDataService.fetchPoolData(),
-    refetchInterval: 30000, // Refetch every 30 seconds (reduced from 10s)
-    staleTime: 20000, // Consider data stale after 20 seconds
+    refetchInterval: 15000,
+    staleTime: 5000, 
     ...options,
   });
 };
@@ -45,8 +45,8 @@ export const useCreditProfile = (options = {}) => {
     queryKey: ['creditProfile', userAddress],
     queryFn: () => CreditProfileDataService.fetchCreditProfile(userAddress),
     enabled: !!userAddress, // Only fetch if user is connected
-    refetchInterval: 45000, // Refetch every 45 seconds (reduced from 15s)
-    staleTime: 30000,
+    refetchInterval: 20000,
+    staleTime: 5000, 
     ...options,
   });
 };
@@ -64,8 +64,10 @@ export const useCollateralVault = (options = {}) => {
     queryKey: ['collateralVault', userAddress],
     queryFn: () => CollateralVaultDataService.fetchCollateralVault(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 20000,
+    refetchInterval: 30000, // Increased from 15s to 30s
+    staleTime: 20000, // Increased from 5s to 20s
+    retry: 3, // Retry failed queries 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     ...options,
   });
 };
@@ -83,8 +85,8 @@ export const useUserBalance = (options = {}) => {
     queryKey: ['userBalance', userAddress],
     queryFn: () => BalanceService.fetchSuiBalance(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 30000, // Refetch every 30 seconds (reduced from 10s)
-    staleTime: 20000,
+    refetchInterval: 15000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -106,8 +108,8 @@ export const useUserDeposits = (options = {}) => {
     queryKey: ['userDeposits', userAddress, poolAPY],
     queryFn: () => UserDepositService.fetchUserDeposits(userAddress, poolAPY),
     enabled: !!userAddress,
-    refetchInterval: 45000, // Refetch every 45 seconds (reduced from 15s)
-    staleTime: 30000,
+    refetchInterval: 20000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -125,8 +127,8 @@ export const useUserLoans = (options = {}) => {
     queryKey: ['userLoans', userAddress],
     queryFn: () => UserLoanService.fetchUserLoans(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 15000,
-    staleTime: 10000,
+    refetchInterval: 15000, 
+    staleTime: 5000,
     ...options,
   });
 };
@@ -142,8 +144,8 @@ export const useDePINProject = (projectObjectId, options = {}) => {
     queryKey: ['depinProject', projectObjectId],
     queryFn: () => DePINDataService.fetchProjectData(projectObjectId),
     enabled: !!projectObjectId,
-    refetchInterval: 20000,
-    staleTime: 15000,
+    refetchInterval: 15000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -159,8 +161,8 @@ export const useDePINProjects = (projectIds = [], options = {}) => {
     queryKey: ['depinProjects', projectIds],
     queryFn: () => DePINDataService.fetchMultipleProjects(projectIds),
     enabled: projectIds.length > 0,
-    refetchInterval: 60000, // Refetch every 60 seconds (reduced from 20s)
-    staleTime: 45000,
+    refetchInterval: 20000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -178,8 +180,8 @@ export const useUserDePINNFTs = (options = {}) => {
     queryKey: ['userDePINNFTs', userAddress],
     queryFn: () => DePINDataService.fetchUserNFTs(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 30000,
-    staleTime: 20000,
+    refetchInterval: 20000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -195,8 +197,8 @@ export const useRiskPool = (poolObjectId, options = {}) => {
     queryKey: ['riskPool', poolObjectId],
     queryFn: () => RiskPoolDataService.fetchRiskPoolData(poolObjectId),
     enabled: !!poolObjectId,
-    refetchInterval: 30000,
-    staleTime: 20000,
+    refetchInterval: 20000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -212,8 +214,8 @@ export const useRiskPools = (poolIds = [], options = {}) => {
     queryKey: ['riskPools', poolIds],
     queryFn: () => RiskPoolDataService.fetchMultipleRiskPools(poolIds),
     enabled: poolIds.length > 0,
-    refetchInterval: 30000,
-    staleTime: 20000,
+    refetchInterval: 20000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -229,8 +231,8 @@ export const useMudarabahPool = (poolObjectId, options = {}) => {
     queryKey: ['mudarabahPool', poolObjectId],
     queryFn: () => MudarabahPoolDataService.fetchMudarabahPoolData(poolObjectId),
     enabled: !!poolObjectId,
-    refetchInterval: 30000,
-    staleTime: 20000,
+    refetchInterval: 20000,
+    staleTime: 5000,
     ...options,
   });
 };
@@ -246,8 +248,8 @@ export const useMudarabahDistributionHistory = (poolObjectId, options = {}) => {
     queryKey: ['mudarabahDistributionHistory', poolObjectId],
     queryFn: () => MudarabahPoolDataService.fetchDistributionHistory(poolObjectId),
     enabled: !!poolObjectId,
-    refetchInterval: 60000,
-    staleTime: 45000,
+    refetchInterval: 30000,
+    staleTime: 10000,
     ...options,
   });
 };
@@ -274,7 +276,8 @@ export const useMaxBorrowLimit = () => {
 
 /**
  * Hook to invalidate queries after transaction
- * @returns {Function} Invalidate function
+ * Ensures cache is cleared and data is refetched from blockchain
+ * @returns {Object} Invalidation functions with sync capabilities
  */
 export const useInvalidateQueries = () => {
   const queryClient = useQueryClient();
@@ -282,43 +285,129 @@ export const useInvalidateQueries = () => {
   const userAddress = account?.address;
 
   return {
-    invalidateAll: () => {
-      queryClient.invalidateQueries({ queryKey: ['lendingPool'] });
-      queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] });
-      queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] });
-      queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] });
-      queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] });
-      queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] });
-      queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] });
+    /**
+     * Invalidate ALL queries and force immediate refetch
+     * CRITICAL: Use after any state-changing transaction
+     */
+    invalidateAll: async () => {
+      // Step 1: Invalidate all queries to mark them as stale
+      await Promise.all([
+        // User-specific queries
+        queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] }),
+        
+        // Global/pool queries
+        queryClient.invalidateQueries({ queryKey: ['lendingPool'] }),
+        queryClient.invalidateQueries({ queryKey: ['riskPools'] }),
+        queryClient.invalidateQueries({ queryKey: ['riskPool'] }),
+        queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] }),
+        queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] }),
+        queryClient.invalidateQueries({ queryKey: ['depinProjects'] }),
+      ]);
+      
+      // Step 2: Force immediate refetch of critical queries
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['creditProfile', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['userDeposits', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
+      ]);
     },
-    invalidateLendingPool: () => {
-      queryClient.invalidateQueries({ queryKey: ['lendingPool'] });
+    
+    /**
+     * Invalidate lending-related queries (deposit, withdraw, lend actions)
+     */
+    invalidateLendingQueries: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['lendingPool'] }),
+        queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] }),
+      ]);
+      
+      // Refetch immediately
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['userDeposits', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' }),
+      ]);
     },
-    invalidateCreditProfile: () => {
-      queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] });
+    
+    /**
+     * Invalidate borrow-related queries (borrow, repay actions)
+     */
+    invalidateBorrowQueries: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['lendingPool'] }),
+      ]);
+      
+      // Refetch immediately
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['creditProfile', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' }),
+      ]);
     },
-    invalidateCollateralVault: () => {
-      queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] });
+    
+    /**
+     * Invalidate individual pool/market queries
+     */
+    invalidateLendingPool: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['lendingPool'] });
+      await queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' });
     },
-    invalidateBalance: () => {
-      queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] });
+    
+    invalidateCreditProfile: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] });
+      await queryClient.refetchQueries({ queryKey: ['creditProfile', userAddress], type: 'active' });
     },
-    invalidateDeposits: () => {
-      queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] });
+    
+    invalidateCollateralVault: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] });
+      await queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' });
     },
-    invalidateLoans: () => {
-      queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] });
+    
+    invalidateBalance: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] });
+      await queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' });
     },
-    invalidateDePIN: () => {
-      queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] });
+    
+    invalidateDeposits: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] });
+      await queryClient.refetchQueries({ queryKey: ['userDeposits', userAddress], type: 'active' });
     },
-    invalidateRiskPools: () => {
-      queryClient.invalidateQueries({ queryKey: ['riskPools'] });
-      queryClient.invalidateQueries({ queryKey: ['riskPool'] });
+    
+    invalidateLoans: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] });
+      await queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' });
     },
-    invalidateMudarabah: () => {
-      queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
-      queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
+    
+    invalidateDePIN: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] });
+      await queryClient.invalidateQueries({ queryKey: ['depinProjects'] });
+      await queryClient.refetchQueries({ queryKey: ['userDePINNFTs', userAddress] });
+    },
+    
+    invalidateRiskPools: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+      await queryClient.invalidateQueries({ queryKey: ['riskPool'] });
+      await queryClient.refetchQueries({ queryKey: ['riskPools'] });
+    },
+    
+    invalidateMudarabah: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+      await queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
+      await queryClient.refetchQueries({ queryKey: ['mudarabahPool'] });
     },
   };
 };

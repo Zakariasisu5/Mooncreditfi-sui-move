@@ -39,7 +39,7 @@ const LendProduction = () => {
   const { data: balance, isLoading: isLoadingBalance } = useUserBalance();
   const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
   const { data: vault, isLoading: isLoadingVault } = useCollateralVault();
-  const { invalidateAll } = useInvalidateQueries();
+  const { invalidateAll, invalidateLendingPool } = useInvalidateQueries();
   const queryClient = useQueryClient();
 
   // SECURITY: Use secure transaction execution
@@ -80,17 +80,32 @@ const LendProduction = () => {
             throw error;
           },
         });
-        // Wait for vault creation
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        // Wait longer for vault creation and event indexing (increased from 3s to 6s)
+        toast.info('Waiting for vault confirmation...');
+        await new Promise(resolve => setTimeout(resolve, 6000));
+        // Immediately invalidate and wait for refetch before continuing
         await invalidateAll();
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Refetch vault to get object ID
-      const vaultData = hasVault ? vault : await CollateralVaultDataService.fetchCollateralVault(account.address);
+      // Refetch vault to get object ID with retry logic
+      let vaultData = null;
+      let fetchAttempts = 0;
+      const maxFetchAttempts = 3;
+      
+      while (!vaultData && fetchAttempts < maxFetchAttempts) {
+        vaultData = hasVault ? vault : await CollateralVaultDataService.fetchCollateralVault(account.address);
+        
+        if (!vaultData && fetchAttempts < maxFetchAttempts - 1) {
+          fetchAttempts++;
+          toast.info(`Vault retrieval in progress... (${fetchAttempts}/${maxFetchAttempts - 1})`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s between retries
+        } else if (!vaultData) {
+          break;
+        }
+      }
       
       if (!vaultData) {
-        toast.error('Failed to fetch vault. Please try again.');
+        toast.error('Failed to fetch vault. This may be a temporary network issue. Please wait a moment and try again.');
         return;
       }
 
@@ -113,8 +128,9 @@ const LendProduction = () => {
         },
       });
 
-      // Wait for deposit to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait for deposit to complete and invalidate lending queries
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await invalidateLendingPool();
 
       // Step 3: Also deposit to collateral vault (same amount)
       toast.info('Adding to collateral...');
@@ -126,15 +142,17 @@ const LendProduction = () => {
           toast.success(`Successfully deposited ${depositAmountNum} SUI! (Available for lending & borrowing)`);
           addNotification(`Deposited ${depositAmountNum} SUI`, 'success');
           setDepositAmount('');
-          setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(`Lending pool deposit succeeded, but collateral deposit failed: ${friendlyError.message}`);
           setDepositAmount('');
-          setTimeout(() => invalidateAll(), 2000);
         },
       });
+
+      // Final comprehensive refresh after all transactions complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await invalidateAll();
     } catch (error) {
       console.error('Deposit flow error:', error);
     }
@@ -161,14 +179,16 @@ const LendProduction = () => {
           toast.success('Withdrawal successful!');
           addNotification(`Withdrew ${withdrawAmount} SUI from lending pool`, 'success');
           setWithdrawAmount('');
-          // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
         },
       });
+
+      // Wait for on-chain confirmation and refetch lending data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await invalidateLendingPool();
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Withdraw error:', error);
@@ -203,14 +223,16 @@ const LendProduction = () => {
         onSuccess: (digest) => {
           toast.success(`Successfully claimed ${yieldAmount.toFixed(6)} SUI yield!`);
           addNotification(`Claimed ${yieldAmount.toFixed(6)} SUI yield`, 'success');
-          // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
         },
       });
+
+      // Wait for on-chain confirmation and refetch lending data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await invalidateLendingPool();
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Claim yield error:', error);
@@ -231,10 +253,10 @@ const LendProduction = () => {
         validationParams: { amount, pool },
         onSuccess: () => {
           toast.success(`Successfully contributed ${amount} SUI to Mudarabah pool`);
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -260,11 +282,11 @@ const LendProduction = () => {
         validationParams: { pool },
         onSuccess: () => {
           toast.success('Profit distributed successfully!');
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
-            queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['mudarabahPool'] });
+            await queryClient.invalidateQueries({ queryKey: ['mudarabahDistributionHistory'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);

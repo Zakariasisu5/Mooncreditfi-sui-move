@@ -179,6 +179,30 @@ export const CreditProfileDataService = {
  */
 export const CollateralVaultDataService = {
   /**
+   * Retry helper function with exponential backoff
+   * @param {Function} fn - Function to retry
+   * @param {number} maxRetries - Max retry attempts
+   * @param {number} baseDelay - Base delay in ms
+   * @returns {Promise<any>} Function result
+   */
+  _retryWithBackoff: async (fn, maxRetries = 4, baseDelay = 1500) => {
+    let lastError;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (attempt < maxRetries - 1) {
+          const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+          console.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`, error.message);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    throw lastError;
+  },
+
+  /**
    * Fetch user's collateral vault
    * @param {string} userAddress - User's Sui address
    * @returns {Promise<Object>} Collateral vault data
@@ -189,63 +213,66 @@ export const CollateralVaultDataService = {
       
       let vaultId = null;
 
+      // Helper function to query events with retry logic
+      const queryEventsWithRetry = async (eventType, limit = 100) => {
+        return await CollateralVaultDataService._retryWithBackoff(async () => {
+          const events = await suiClient.queryEvents({
+            query: {
+              MoveEventType: `${SUI_PACKAGE_ID}::collateral::${eventType}`,
+            },
+            limit,
+            order: 'descending',
+          });
+          return events;
+        }, 4, 1500); // 4 retries with 1.5s base delay
+      };
+
       // Step 1: Try to find vault via VaultCreated events (for all vaults)
       try {
-        const createEvents = await suiClient.queryEvents({
-          query: {
-            MoveEventType: `${SUI_PACKAGE_ID}::collateral::VaultCreated`,
-          },
-          limit: 100,
-          order: 'descending',
-        });
+        const createEvents = await queryEventsWithRetry('VaultCreated', 100);
 
         for (const event of createEvents.data || []) {
           if (event.parsedJson?.owner === userAddress) {
             vaultId = event.parsedJson?.vault_id;
+            console.log('Found vault via VaultCreated event:', vaultId);
             break;
           }
         }
       } catch (e) {
-        console.warn('VaultCreated events query failed:', e);
+        console.warn('VaultCreated events query failed after retries:', e.message);
       }
 
       // Step 2: If not found, try CollateralDeposited events (for vaults with deposits)
       if (!vaultId) {
-        const depositEvents = await suiClient.queryEvents({
-          query: {
-            MoveEventType: `${SUI_PACKAGE_ID}::collateral::CollateralDeposited`,
-          },
-          limit: 50,
-          order: 'descending',
-        });
+        try {
+          const depositEvents = await queryEventsWithRetry('CollateralDeposited', 50);
 
-        for (const event of depositEvents.data || []) {
-          if (event.parsedJson?.owner === userAddress) {
-            vaultId = event.parsedJson?.vault_id;
-            break;
+          for (const event of depositEvents.data || []) {
+            if (event.parsedJson?.owner === userAddress) {
+              vaultId = event.parsedJson?.vault_id;
+              console.log('Found vault via CollateralDeposited event:', vaultId);
+              break;
+            }
           }
+        } catch (e) {
+          console.warn('CollateralDeposited events query failed after retries:', e.message);
         }
       }
 
       // Step 3: If still not found, try withdrawal events
       if (!vaultId) {
         try {
-          const withdrawEvents = await suiClient.queryEvents({
-            query: {
-              MoveEventType: `${SUI_PACKAGE_ID}::collateral::CollateralWithdrawn`,
-            },
-            limit: 50,
-            order: 'descending',
-          });
+          const withdrawEvents = await queryEventsWithRetry('CollateralWithdrawn', 50);
 
           for (const event of withdrawEvents.data || []) {
             if (event.parsedJson?.owner === userAddress) {
               vaultId = event.parsedJson?.vault_id;
+              console.log('Found vault via CollateralWithdrawn event:', vaultId);
               break;
             }
           }
         } catch (e) {
-          console.warn('Withdrawal events query failed:', e);
+          console.warn('Withdrawal events query failed after retries:', e.message);
         }
       }
 
@@ -253,24 +280,39 @@ export const CollateralVaultDataService = {
       // so it cannot be found via getOwnedObjects(). We rely on events to find it.
 
       if (!vaultId) {
+        console.warn(`No vault found for user ${userAddress}. Events may not be indexed yet or vault doesn't exist.`);
         return null; // No vault found
       }
 
-      // Fetch the vault object
-      const vaultObject = await suiClient.getObject({
-        id: vaultId,
-        options: {
-          showContent: true,
-          showType: true,
-        },
-      });
+      // Fetch the vault object with retry logic for indexing delays
+      let vaultObject;
+      try {
+        vaultObject = await CollateralVaultDataService._retryWithBackoff(async () => {
+          const result = await suiClient.getObject({
+            id: vaultId,
+            options: {
+              showContent: true,
+              showType: true,
+            },
+          });
+          if (!result.data) {
+            throw new Error('Vault object data not found');
+          }
+          return result;
+        }, 3, 1000);
+      } catch (error) {
+        console.error('Failed to fetch vault object after retries:', error);
+        return null;
+      }
 
       if (!vaultObject.data) {
+        console.error('Vault object has no data');
         return null;
       }
 
       const fields = vaultObject.data.content?.fields;
       if (!fields) {
+        console.error('Vault fields not found');
         return null;
       }
 
@@ -583,41 +625,174 @@ export const BalanceService = {
  */
 export const UserDepositService = {
   /**
+   * Fetch user's deposit data directly from lending pool object
+   * This is more reliable than events as it reads the current on-chain state
+   * @param {string} userAddress - User's Sui address
+   * @param {number} poolAPY - Current pool APY
+   * @returns {Promise<Object>} User deposit data
+   */
+  fetchUserDepositsFromPool: async (userAddress, poolAPY = 5.0) => {
+    try {
+      const suiClient = getSuiClient();
+      
+      console.log('🔍 Fetching deposits from pool for user:', userAddress);
+      
+      // Fetch the lending pool object
+      const poolObject = await suiClient.getObject({
+        id: LENDING_POOL_OBJECT_ID,
+        options: {
+          showContent: true,
+        },
+      });
+
+      if (!poolObject.data || !poolObject.data.content) {
+        console.warn('⚠️ Pool object not found');
+        return {
+          totalDeposited: 0,
+          totalWithdrawn: 0,
+          netDeposited: 0,
+          depositCount: 0,
+          withdrawCount: 0,
+          yieldEarned: 0,
+          firstDepositTimestamp: null,
+          lastActivityTimestamp: null,
+        };
+      }
+
+      const fields = poolObject.data.content.fields;
+      const userPositions = fields.user_positions;
+
+      console.log('📦 Pool fields:', fields);
+      console.log('👥 User positions table ID:', userPositions?.fields?.id?.id);
+
+      // Try to get user position from the dynamic field
+      if (userPositions?.fields?.id?.id) {
+        try {
+          const userPosition = await suiClient.getDynamicFieldObject({
+            parentId: userPositions.fields.id.id,
+            name: {
+              type: 'address',
+              value: userAddress,
+            },
+          });
+
+          console.log('📊 User position:', userPosition);
+
+          if (userPosition.data && userPosition.data.content) {
+            const positionFields = userPosition.data.content.fields.value.fields;
+            const principal = mistToSui(positionFields.principal || 0);
+            const accumulatedYield = mistToSui(positionFields.accumulated_yield || 0);
+            const lastUpdateTime = parseInt(positionFields.last_update_time || 0);
+
+            console.log('💰 Principal:', principal, 'SUI');
+            console.log('📈 Accumulated Yield:', accumulatedYield, 'SUI');
+
+            return {
+              totalDeposited: principal,
+              totalWithdrawn: 0, // Not tracked in position
+              netDeposited: principal,
+              depositCount: principal > 0 ? 1 : 0,
+              withdrawCount: 0,
+              yieldEarned: accumulatedYield,
+              firstDepositTimestamp: lastUpdateTime,
+              lastActivityTimestamp: lastUpdateTime,
+            };
+          }
+        } catch (error) {
+          console.warn('⚠️ User has no position in pool:', error.message);
+        }
+      }
+
+      // If no position found, return zeros
+      return {
+        totalDeposited: 0,
+        totalWithdrawn: 0,
+        netDeposited: 0,
+        depositCount: 0,
+        withdrawCount: 0,
+        yieldEarned: 0,
+        firstDepositTimestamp: null,
+        lastActivityTimestamp: null,
+      };
+    } catch (error) {
+      console.error('❌ Error fetching deposits from pool:', error);
+      return {
+        totalDeposited: 0,
+        totalWithdrawn: 0,
+        netDeposited: 0,
+        depositCount: 0,
+        withdrawCount: 0,
+        yieldEarned: 0,
+        firstDepositTimestamp: null,
+        lastActivityTimestamp: null,
+      };
+    }
+  },
+
+  /**
    * Fetch user's deposit and withdrawal events to calculate net deposited amount and yield
    * @param {string} userAddress - User's Sui address
    * @param {number} poolAPY - Current pool APY
    * @returns {Promise<Object>} User deposit data
    */
   fetchUserDeposits: async (userAddress, poolAPY = 5.0) => {
+    // Try pool-based approach first (more reliable)
+    const poolData = await UserDepositService.fetchUserDepositsFromPool(userAddress, poolAPY);
+    
+    // If pool data shows deposits, return it
+    if (poolData.netDeposited > 0) {
+      console.log('✅ Using pool-based deposit data');
+      return poolData;
+    }
+    
+    // Otherwise fall back to event-based approach
+    console.log('🔄 Falling back to event-based deposit tracking');
+    
     try {
       const suiClient = getSuiClient();
+      
+      console.log('🔍 Fetching deposits for user:', userAddress);
+      console.log('📦 Package ID:', SUI_PACKAGE_ID);
       
       // Query deposit events with error handling
       let depositEvents = { data: [] };
       try {
+        const eventType = `${SUI_PACKAGE_ID}::lending_logic::DepositEvent`;
+        console.log('🔍 Querying deposit events with type:', eventType);
+        
         depositEvents = await suiClient.queryEvents({
           query: {
-            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::DepositEvent`,
+            MoveEventType: eventType,
           },
           limit: 1000,
         });
+        
+        console.log('✅ Found deposit events:', depositEvents.data?.length || 0);
+        if (depositEvents.data && depositEvents.data.length > 0) {
+          console.log('📋 Sample deposit event:', depositEvents.data[0]);
+        }
       } catch (eventError) {
         // Gracefully handle missing events or transaction digest errors
-        console.warn('Could not fetch deposit events:', eventError.message);
+        console.warn('⚠️ Could not fetch deposit events:', eventError.message);
       }
 
       // Query withdraw events with error handling
       let withdrawEvents = { data: [] };
       try {
+        const eventType = `${SUI_PACKAGE_ID}::lending_logic::WithdrawEvent`;
+        console.log('🔍 Querying withdraw events with type:', eventType);
+        
         withdrawEvents = await suiClient.queryEvents({
           query: {
-            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::WithdrawEvent`,
+            MoveEventType: eventType,
           },
           limit: 1000,
         });
+        
+        console.log('✅ Found withdraw events:', withdrawEvents.data?.length || 0);
       } catch (eventError) {
         // Gracefully handle missing events or transaction digest errors
-        console.warn('Could not fetch withdraw events:', eventError.message);
+        console.warn('⚠️ Could not fetch withdraw events:', eventError.message);
       }
 
       // Calculate user's deposits
@@ -633,7 +808,9 @@ export const UserDepositService = {
         depositEvents.data.forEach(event => {
           const parsedEvent = event.parsedJson;
           if (parsedEvent && parsedEvent.depositor === userAddress) {
-            totalDeposited += mistToSui(parsedEvent.amount);
+            const amount = mistToSui(parsedEvent.amount);
+            console.log('💰 Found user deposit:', amount, 'SUI');
+            totalDeposited += amount;
             depositCount++;
             const timestamp = event.timestampMs || Date.now();
             if (!firstDepositTimestamp || timestamp < firstDepositTimestamp) {
@@ -646,12 +823,17 @@ export const UserDepositService = {
         });
       }
 
+      console.log('📊 Total deposited for user:', totalDeposited, 'SUI');
+      console.log('📊 Deposit count:', depositCount);
+
       // Sum withdrawals for this user
       if (withdrawEvents.data) {
         withdrawEvents.data.forEach(event => {
           const parsedEvent = event.parsedJson;
           if (parsedEvent && parsedEvent.withdrawer === userAddress) {
-            totalWithdrawn += mistToSui(parsedEvent.amount);
+            const amount = mistToSui(parsedEvent.amount);
+            console.log('💸 Found user withdrawal:', amount, 'SUI');
+            totalWithdrawn += amount;
             withdrawCount++;
             const timestamp = event.timestampMs || Date.now();
             if (!lastActivityTimestamp || timestamp > lastActivityTimestamp) {
@@ -662,6 +844,8 @@ export const UserDepositService = {
       }
 
       const netDeposited = totalDeposited - totalWithdrawn;
+      
+      console.log('📊 Net deposited:', netDeposited, 'SUI');
 
       // Calculate yield earned based on time-weighted deposits
       let yieldEarned = 0;
@@ -671,7 +855,7 @@ export const UserDepositService = {
         yieldEarned = (netDeposited * poolAPY / 100) * (daysSinceFirstDeposit / 365);
       }
 
-      return {
+      const result = {
         totalDeposited,
         totalWithdrawn,
         netDeposited,
@@ -681,6 +865,9 @@ export const UserDepositService = {
         firstDepositTimestamp,
         lastActivityTimestamp,
       };
+      
+      console.log('✅ Final deposit data:', result);
+      return result;
     } catch (error) {
       console.error('Error fetching user deposits:', error);
       return {

@@ -1,7 +1,3 @@
-/**
- * Production-ready Borrow Page with real Sui contract integration
- */
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -43,7 +39,7 @@ const BorrowProduction = () => {
   const { data: balance, isLoading: isLoadingBalance } = useUserBalance();
   const { data: vault, isLoading: isLoadingVault } = useCollateralVault();
   const { maxBorrowLimit, creditScore, creditRating, hasProfile } = useMaxBorrowLimit();
-  const { invalidateAll } = useInvalidateQueries();
+  const { invalidateAll, invalidateBorrowQueries } = useInvalidateQueries();
   const queryClient = useQueryClient();
 
   // SECURITY: Use secure transaction execution
@@ -87,14 +83,16 @@ const BorrowProduction = () => {
         onSuccess: (digest) => {
           toast.success('Credit profile created successfully!');
           addNotification('Credit profile created', 'success');
-          // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
         },
       });
+
+      // Wait for on-chain confirmation and refetch data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await invalidateBorrowQueries();
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Create profile error:', error);
@@ -189,14 +187,16 @@ const BorrowProduction = () => {
           toast.success('Borrow successful!');
           addNotification(`Borrowed ${borrowAmount} SUI`, 'success');
           setBorrowAmount('');
-          // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 3500);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
         },
       });
+
+      // Wait for on-chain confirmation and refetch all borrow-related data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await invalidateBorrowQueries();
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Borrow error:', error);
@@ -230,14 +230,16 @@ const BorrowProduction = () => {
           toast.success('Repayment successful!');
           addNotification('Loan repaid — credit score updated', 'success');
           setRepayAmount('');
-          // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 3500);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
         },
       });
+
+      // Wait for on-chain confirmation and refetch all borrow-related data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await invalidateBorrowQueries();
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Repay error:', error);
@@ -258,10 +260,10 @@ const BorrowProduction = () => {
         validationParams: { amount, pool },
         onSuccess: () => {
           toast.success(`Successfully deposited ${amount} SUI to ${pool.name}`);
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['riskPools'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
@@ -292,10 +294,10 @@ const BorrowProduction = () => {
         validationParams: { amount, pool, profile },
         onSuccess: () => {
           toast.success(`Successfully borrowed ${amount} SUI from ${pool.name}`);
-          setTimeout(() => {
-            invalidateAll();
-            queryClient.invalidateQueries({ queryKey: ['riskPools'] });
-          }, 2000);
+          setTimeout(async () => {
+            await invalidateAll();
+            await queryClient.invalidateQueries({ queryKey: ['riskPools'] });
+          }, 5000); // Increased from 2s to 5s for event indexing
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);

@@ -26,7 +26,7 @@ const CreditProfileProduction = () => {
   // Fetch data from blockchain
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useCreditProfile();
   const { maxBorrowLimit, creditScore, creditRating, hasProfile } = useMaxBorrowLimit();
-  const { invalidateAll } = useInvalidateQueries();
+  const { invalidateAll, invalidateCreditProfile } = useInvalidateQueries();
   
   // SECURITY: Use secure transaction execution
   const { executeSecureTransaction, isPending, isConfirming } = useSecureTransaction();
@@ -48,14 +48,16 @@ const CreditProfileProduction = () => {
         validationParams: {},
         onSuccess: (digest) => {
           toast.success('Credit profile created successfully!');
-          // SECURITY: Wait for on-chain confirmation before updating UI
-          setTimeout(() => invalidateAll(), 2000);
         },
         onError: (error) => {
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
         },
       });
+
+      // Wait for on-chain confirmation and refetch credit profile data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await invalidateCreditProfile();
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Create profile error:', error);
