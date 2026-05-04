@@ -889,40 +889,148 @@ export const UserDepositService = {
  */
 export const UserLoanService = {
   /**
+   * Fetch user's loan data directly from credit profile
+   * This is more reliable than events as it reads the current on-chain state
+   * @param {string} userAddress - User's Sui address
+   * @returns {Promise<Object>} User loan data
+   */
+  fetchUserLoansFromProfile: async (userAddress) => {
+    try {
+      console.log('🔍 Fetching loans from credit profile for user:', userAddress);
+      
+      // Fetch the credit profile
+      const profile = await CreditProfileDataService.fetchCreditProfile(userAddress);
+      
+      if (!profile) {
+        console.warn('⚠️ No credit profile found for user');
+        return {
+          totalBorrowed: 0,
+          totalRepaid: 0,
+          outstandingDebt: 0,
+          estimatedInterest: 0,
+          totalOwed: 0,
+          borrowCount: 0,
+          repayCount: 0,
+          hasActiveLoan: false,
+          lastBorrowTimestamp: null,
+          lastRepayTimestamp: null,
+          interestRate: 5.0,
+        };
+      }
+
+      const totalBorrowed = profile.totalBorrowed || 0;
+      const totalRepaid = profile.totalRepaid || 0;
+      const borrowCount = profile.loanCount || 0;
+      const outstandingDebt = profile.debt || 0; // Current debt from profile
+      const hasActiveLoan = outstandingDebt > 0.001;
+
+      console.log('💰 Total Borrowed:', totalBorrowed, 'SUI');
+      console.log('💸 Total Repaid:', totalRepaid, 'SUI');
+      console.log('📊 Outstanding Debt:', outstandingDebt, 'SUI');
+      console.log('📈 Loan Count:', borrowCount);
+
+      // Calculate estimated interest (5% APR for simplicity)
+      const interestRate = 5.0;
+      let estimatedInterest = 0;
+      if (hasActiveLoan && profile.lastLoanTime) {
+        const daysSinceBorrow = (Date.now() - profile.lastLoanTime) / (1000 * 60 * 60 * 24);
+        estimatedInterest = (outstandingDebt * interestRate / 100) * (daysSinceBorrow / 365);
+      }
+
+      const result = {
+        totalBorrowed,
+        totalRepaid,
+        outstandingDebt,
+        estimatedInterest,
+        totalOwed: outstandingDebt + estimatedInterest,
+        borrowCount,
+        repayCount: 0, // Not tracked separately in profile
+        hasActiveLoan,
+        lastBorrowTimestamp: profile.lastLoanTime || null,
+        lastRepayTimestamp: profile.lastActivityTime || null,
+        interestRate,
+      };
+
+      console.log('✅ Final loan data:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error fetching loans from profile:', error);
+      return {
+        totalBorrowed: 0,
+        totalRepaid: 0,
+        outstandingDebt: 0,
+        estimatedInterest: 0,
+        totalOwed: 0,
+        borrowCount: 0,
+        repayCount: 0,
+        hasActiveLoan: false,
+        lastBorrowTimestamp: null,
+        lastRepayTimestamp: null,
+        interestRate: 5.0,
+      };
+    }
+  },
+
+  /**
    * Fetch user's borrow and repay events to calculate active loans
    * @param {string} userAddress - User's Sui address
    * @returns {Promise<Object>} User loan data
    */
   fetchUserLoans: async (userAddress) => {
+    // Try profile-based approach first (more reliable)
+    const profileData = await UserLoanService.fetchUserLoansFromProfile(userAddress);
+    
+    // If profile data shows loans, return it
+    if (profileData.totalBorrowed > 0 || profileData.borrowCount > 0) {
+      console.log('✅ Using profile-based loan data');
+      return profileData;
+    }
+    
+    // Otherwise fall back to event-based approach
+    console.log('🔄 Falling back to event-based loan tracking');
+    
     try {
       const suiClient = getSuiClient();
+      
+      console.log('🔍 Fetching loans for user:', userAddress);
+      console.log('📦 Package ID:', SUI_PACKAGE_ID);
       
       // Query borrow events with error handling
       let borrowEvents = { data: [] };
       try {
+        const eventType = `${SUI_PACKAGE_ID}::lending_logic::BorrowEvent`;
+        console.log('🔍 Querying borrow events with type:', eventType);
+        
         borrowEvents = await suiClient.queryEvents({
           query: {
-            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::BorrowEvent`,
+            MoveEventType: eventType,
           },
           limit: 1000,
         });
+        
+        console.log('✅ Found borrow events:', borrowEvents.data?.length || 0);
       } catch (eventError) {
         // Gracefully handle missing events or transaction digest errors
-        console.warn('Could not fetch borrow events:', eventError.message);
+        console.warn('⚠️ Could not fetch borrow events:', eventError.message);
       }
 
       // Query repay events with error handling
       let repayEvents = { data: [] };
       try {
+        const eventType = `${SUI_PACKAGE_ID}::lending_logic::RepayEvent`;
+        console.log('🔍 Querying repay events with type:', eventType);
+        
         repayEvents = await suiClient.queryEvents({
           query: {
-            MoveEventType: `${SUI_PACKAGE_ID}::lending_logic::RepayEvent`,
+            MoveEventType: eventType,
           },
           limit: 1000,
         });
+        
+        console.log('✅ Found repay events:', repayEvents.data?.length || 0);
       } catch (eventError) {
         // Gracefully handle missing events or transaction digest errors
-        console.warn('Could not fetch repay events:', eventError.message);
+        console.warn('⚠️ Could not fetch repay events:', eventError.message);
       }
 
       // Calculate user's loans
@@ -938,7 +1046,9 @@ export const UserLoanService = {
         borrowEvents.data.forEach(event => {
           const parsedEvent = event.parsedJson;
           if (parsedEvent && parsedEvent.borrower === userAddress) {
-            totalBorrowed += mistToSui(parsedEvent.amount);
+            const amount = mistToSui(parsedEvent.amount);
+            console.log('💰 Found user borrow:', amount, 'SUI');
+            totalBorrowed += amount;
             borrowCount++;
             if (!lastBorrowTimestamp || event.timestampMs > lastBorrowTimestamp) {
               lastBorrowTimestamp = event.timestampMs;
@@ -947,12 +1057,17 @@ export const UserLoanService = {
         });
       }
 
+      console.log('📊 Total borrowed for user:', totalBorrowed, 'SUI');
+      console.log('📊 Borrow count:', borrowCount);
+
       // Sum repayments for this user
       if (repayEvents.data) {
         repayEvents.data.forEach(event => {
           const parsedEvent = event.parsedJson;
           if (parsedEvent && parsedEvent.borrower === userAddress) {
-            totalRepaid += mistToSui(parsedEvent.amount);
+            const amount = mistToSui(parsedEvent.amount);
+            console.log('💸 Found user repayment:', amount, 'SUI');
+            totalRepaid += amount;
             repayCount++;
             if (!lastRepayTimestamp || event.timestampMs > lastRepayTimestamp) {
               lastRepayTimestamp = event.timestampMs;
@@ -961,8 +1076,12 @@ export const UserLoanService = {
         });
       }
 
+      console.log('📊 Total repaid for user:', totalRepaid, 'SUI');
+
       const outstandingDebt = totalBorrowed - totalRepaid;
       const hasActiveLoan = outstandingDebt > 0.001; // Consider loans > 0.001 SUI as active
+      
+      console.log('📊 Outstanding debt:', outstandingDebt, 'SUI');
 
       // Calculate estimated interest (5% APR for simplicity)
       const interestRate = 5.0;
@@ -972,7 +1091,7 @@ export const UserLoanService = {
         estimatedInterest = (outstandingDebt * interestRate / 100) * (daysSinceBorrow / 365);
       }
 
-      return {
+      const result = {
         totalBorrowed,
         totalRepaid,
         outstandingDebt,
@@ -985,6 +1104,9 @@ export const UserLoanService = {
         lastRepayTimestamp,
         interestRate,
       };
+      
+      console.log('✅ Final loan data from events:', result);
+      return result;
     } catch (error) {
       console.error('Error fetching user loans:', error);
       return {
