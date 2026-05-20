@@ -9,7 +9,8 @@ import * as fs from "fs";
 
 // Configuration
 const PACKAGE_ID =
-  "0xea0bcec63b5d7593cc972d2c5e919324778ec69f5e68a9756dd0c91a2c42b812"; // Latest deployment
+  "0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5"; // Latest deployment - May 20, 2026
+const PROFILE_REGISTRY_ID = "0x59bee28062384ea12e53a1014dc32443090fc90e15caf4e90d56559d7bff315f";
 const NETWORK = "testnet";
 
 interface TestConfig {

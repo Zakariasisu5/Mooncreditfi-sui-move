@@ -1,3 +1,4 @@
+#[allow(unused_use)]
 #[test_only]
 module mooncreditfi::lending_pool_tests {
     use sui::test_scenario::{Self as ts, Scenario};
@@ -70,7 +71,7 @@ module mooncreditfi::lending_pool_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 21)] // ENoPosition
+    #[expected_failure(abort_code = 21, location = mooncreditfi::lending_pool)]
     fun test_remove_user_position_no_position() {
         let mut scenario = setup_test();
         

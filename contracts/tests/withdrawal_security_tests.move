@@ -1,3 +1,4 @@
+#[allow(unused_use)]
 #[test_only]
 module mooncreditfi::withdrawal_security_tests {
     use sui::test_scenario::{Self as ts, Scenario};
@@ -34,7 +35,7 @@ module mooncreditfi::withdrawal_security_tests {
     /// TEST 1.3: Test unauthorized withdrawal attempt fails
     /// This is the critical security test for C-01
     #[test]
-    #[expected_failure(abort_code = 21)] // ENoPosition
+    #[expected_failure(abort_code = 21, location = mooncreditfi::lending_pool)]
     fun test_unauthorized_withdrawal_no_deposit() {
         let mut scenario = ts::begin(@0x1);
         create_test_pool(&mut scenario);
@@ -57,7 +58,7 @@ module mooncreditfi::withdrawal_security_tests {
 
     /// TEST 1.4: Test withdrawal exceeding balance fails
     #[test]
-    #[expected_failure(abort_code = 24)] // EInsufficientPrincipal
+    #[expected_failure(abort_code = 24, location = mooncreditfi::lending_pool)]
     fun test_withdrawal_exceeds_balance() {
         let mut scenario = ts::begin(@0x1);
         create_test_pool(&mut scenario);
@@ -189,7 +190,7 @@ module mooncreditfi::withdrawal_security_tests {
 
     /// TEST: Attack simulation - User A tries to withdraw User B's funds
     #[test]
-    #[expected_failure(abort_code = 24)] // EInsufficientPrincipal
+    #[expected_failure(abort_code = 24, location = mooncreditfi::lending_pool)]
     fun test_attack_steal_other_user_funds() {
         let mut scenario = ts::begin(@0x1);
         create_test_pool(&mut scenario);

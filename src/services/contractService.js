@@ -16,6 +16,7 @@ import {
   CREDIT_PROFILE_OBJECT_ID,
   DEPIN_FINANCE_OBJECT_ID,
   PROFILE_REGISTRY_OBJECT_ID,
+  isValidObjectId,
 } from '@/config/sui';
 import { InputValidator } from '@/utils/securityValidation';
 
@@ -62,6 +63,11 @@ export const LendingPoolService = {
    * @returns {Transaction}
    */
   createDepositTransaction: (amountInSui) => {
+    // Validate lending pool ID is configured
+    if (!isValidObjectId(LENDING_POOL_OBJECT_ID)) {
+      throw new Error('Lending Pool not configured. Please extract the Lending Pool object ID from deployment and update src/config/sui.js');
+    }
+    
     const tx = new Transaction();
     const amountInMist = suiToMist(amountInSui);
     

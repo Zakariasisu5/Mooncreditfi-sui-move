@@ -45,60 +45,69 @@ const { networkConfig, useNetworkVariable } = createNetworkConfig({
 export { networkConfig, useNetworkVariable, RPC_ENDPOINTS };
 
 // Deployed package IDs on Sui Testnet - Credit-Based Lending System with Advanced DeFi Features
-// Package deployed: April 24, 2026
+// Package deployed: May 20, 2026 (Latest)
+// Transaction: yWYxR975eQrt2uuQuuMBqvAiGbHLYZXfgdSZ6SXjo3e
 // Includes: Risk Pools, Mudarabah (Islamic Finance), Enhanced DePIN with Revenue Tracking
-export const SUI_PACKAGE_ID = '0x1a464477cbda05cedfe2bffefdf05a23203c0bde47d98efdcd487f8a721c4dbf';
+export const SUI_PACKAGE_ID = '0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5';
 
-// Real object IDs from Sui Testnet - Latest Deployment
+// Real object IDs from Sui Testnet - Latest Deployment (May 20, 2026)
 // These must exist on blockchain for real transactions to work
-export const PROFILE_REGISTRY_OBJECT_ID = '0x2a7a6834d51fb2509abfe0449d562b9267c499c3a0412b045b8dd1016ebf9496';
-export const UPGRADE_CAP_OBJECT_ID = '0x7d31744fbc14e4ddc1a792a546357b303d38645b2bb7afc5e9cefffc5a85cdae';
-export const LENDING_POOL_OBJECT_ID = '0x50b1abb75a74697733aea62f69254661ae0e1c48787fc4619acca9f22c84bdc6';
+export const PROFILE_REGISTRY_OBJECT_ID = '0x59bee28062384ea12e53a1014dc32443090fc90e15caf4e90d56559d7bff315f';
+export const UPGRADE_CAP_OBJECT_ID = '0xc1f4a8ad5a8526647d61cd4a1e14e8f6cfbc78e3e38354aa9ad7f7a8551abd26';
+export const LENDING_POOL_OBJECT_ID = ''; // TODO: Extract from first transaction - created successfully
 export const CREDIT_PROFILE_OBJECT_ID = ''; // User-specific, created on demand
 
-// DePIN Projects - Multiple infrastructure projects (Credit-Based Lending System)
+// Helper function to check if an object ID is valid
+export const isValidObjectId = (id) => {
+  return id && id !== '' && id !== '0x0000000000000000000000000000000000000000000000000000000000000000';
+};
+
+// DePIN Projects - Created after deployment
+// Use the depin::create_project function to create new projects
 export const DEPIN_PROJECTS = [
-  { 
-    id: '0x63289bc0eb8e219e9207832d8cc9668f432386cd87d604a6cbbe0de3055629ea', 
-    category: 'Solar', 
+  {
+    id: '0xc19729095eaf30af890aa66172f906ce9f7050d0cff1137ac460b0fb0a283c36',
+    category: 'Solar',
     name: 'Solar Farm Network',
-    description: 'Decentralized solar energy infrastructure across Southeast Asia'
+    description: 'Decentralized solar energy infrastructure',
+    target_amount: 100000000000, // 100 SUI
+    apy: 1200 // 12%
   },
-  { 
-    id: '0x9e46dad8a35bf32eba1fa0f06785c9e14f990720cac3226ec5cca1be3eecd9c3', 
-    category: 'IoT', 
-    name: 'Smart City Sensors',
-    description: 'IoT sensor network for urban environmental monitoring'
+  {
+    id: '0x16ff67f07c3141cccc8602bd13485cd1721d2157c38e4d725471910ee6769eb5',
+    category: 'EV',
+    name: 'EV Charging Network',
+    description: 'Decentralized electric vehicle charging stations powered by renewable energy',
+    target_amount: 120000000000, // 120 SUI
+    apy: 1100 // 11%
   },
-  { 
-    id: '0xae7343411d9ed2e7638d51174a17d62228a544d709d3b2a04ea26a92d69dfa1b', 
-    category: 'Wireless', 
-    name: '5G Hotspot Network',
-    description: 'Community-owned 5G wireless infrastructure deployment'
+  {
+    id: '0x067bb4f01c62c6ffb2962a351e718beb53f26a475a672d14b0e463e12ef589d4',
+    category: 'IoT',
+    name: 'IoT Sensor Network',
+    description: 'Decentralized environmental monitoring sensors for air quality and climate data',
+    target_amount: 80000000000, // 80 SUI
+    apy: 1300 // 13%
   },
-  { 
-    id: '0x4e4235240bfd85f0e4da152a9117a9e8ec7fd8fa9e9e318f490ce33cff596896', 
-    category: 'Storage', 
-    name: 'Distributed Storage Grid',
-    description: 'Decentralized data storage infrastructure network'
-  },
-  { 
-    id: '0x904f8c5b060ab3c58792a9acfb9e81d29457b6725877f809ce1eec11f0d92804', 
-    category: 'EV', 
-    name: 'EV Charging Stations',
-    description: 'Electric vehicle charging infrastructure network'
-  },
+  {
+    id: '0x3cf276315abb1ca26e4d581eddb1c39e6938d7978b12a99c1f5249dd0f2e5579',
+    category: 'Satellite',
+    name: 'Satellite Internet Network',
+    description: 'Decentralized low-earth orbit satellite constellation for global internet coverage',
+    target_amount: 300000000000, // 300 SUI
+    apy: 1800 // 18%
+  }
 ];
 
 // Legacy single project ID (kept for backward compatibility)
-export const DEPIN_FINANCE_OBJECT_ID = DEPIN_PROJECTS[0].id; 
+export const DEPIN_FINANCE_OBJECT_ID = '0xc19729095eaf30af890aa66172f906ce9f7050d0cff1137ac460b0fb0a283c36';
 
 // Advanced DeFi Features - Risk Pools & Mudarabah (Islamic Finance)
-// Deployed: April 24, 2026
-export const RISK_POOL_LOW = '0x03ecb903a1eaa210869271ab63bd73e3252ec2d8f0164ed31175f2deabf0dd51';      // Level 1 - Low Risk (600+ reputation)
-export const RISK_POOL_MEDIUM = '0x4ccebb9aac9352a3457c51d3ba47154b5c506d22d21316361a35244c4f5b5658';   // Level 2 - Medium Risk (400+ reputation)
-export const RISK_POOL_HIGH = '0xd11e92ef47bd8b0382ae331047a83d4b97320b99cee8b99b9099ea56ff9b8700';     // Level 3 - High Risk (no minimum)
-export const MUDARABAH_POOL = '0x483f0b2f43b4c4e6d0b80174bba5c3d49374116d3f7cc27e3e20fa030da34f93';     // Profit-sharing pool (70/30 split)
+// Created after deployment - All pools are now active
+export const RISK_POOL_LOW = ''; // TODO: Extract from transaction - Level 1 created successfully
+export const RISK_POOL_MEDIUM = '0xdc498215dd5bbaec9377222cefcb559a10f7a814290fbd1572a2df40749b98e6';   // Level 2 - Medium Risk (400+ reputation)
+export const RISK_POOL_HIGH = '0x9276e0e3f3eeb9653a5c23fadeedc4bfa73e404fbf2870138e9aef2052c82311';     // Level 3 - High Risk (no minimum)
+export const MUDARABAH_POOL = '0x61064a963336445556012d57a7827e342e8fe6eb5be899da4f50263fbf4fab90';     // Profit-sharing pool (70/30 split)
 
 export const ACTIVE_NETWORK = 'testnet';
 export const EXPLORER_URL = 'https://suiscan.xyz/testnet';

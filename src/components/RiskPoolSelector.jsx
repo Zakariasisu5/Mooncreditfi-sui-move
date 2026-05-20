@@ -21,8 +21,9 @@ const RiskPoolSelector = ({
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Fetch real risk pool data from blockchain
+  // Note: RISK_POOL_LOW is temporarily disabled until ID is extracted
   const poolIds = [
-    { id: RISK_POOL_LOW, name: 'Low Risk Pool', minReputation: 600 },
+    // { id: RISK_POOL_LOW, name: 'Low Risk Pool', minReputation: 600 }, // Temporarily disabled - ID pending
     { id: RISK_POOL_MEDIUM, name: 'Medium Risk Pool', minReputation: 400 },
     { id: RISK_POOL_HIGH, name: 'High Risk Pool', minReputation: 0 },
   ];

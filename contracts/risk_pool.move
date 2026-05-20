@@ -1,7 +1,7 @@
+#[allow(duplicate_alias)]
 module mooncreditfi::risk_pool {
     use sui::object::{Self, UID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
+    use sui::tx_context::TxContext;
     use sui::balance::{Self, Balance};
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
@@ -31,7 +31,7 @@ module mooncreditfi::risk_pool {
         remaining_liquidity: u64,
     }
 
-    public entry fun create_risk_pool(risk_level: u8, ctx: &mut TxContext) {
+    public fun create_risk_pool(risk_level: u8, ctx: &mut TxContext) {
         assert!(risk_level >= 1 && risk_level <= 3, EInvalidRiskLevel);
         
         let pool = RiskPool {
@@ -44,7 +44,7 @@ module mooncreditfi::risk_pool {
         transfer::share_object(pool);
     }
 
-    public entry fun deposit_to_risk_pool(
+    public fun deposit_to_risk_pool(
         pool: &mut RiskPool,
         payment: Coin<SUI>,
         ctx: &mut TxContext
@@ -77,7 +77,7 @@ module mooncreditfi::risk_pool {
         }
     }
 
-    public entry fun borrow_from_risk_pool(
+    public fun borrow_from_risk_pool(
         pool: &mut RiskPool,
         profile: &CreditProfile,
         amount: u64,
