@@ -1,12 +1,9 @@
 import { createNetworkConfig } from '@mysten/dapp-kit';
 
-// SECURITY: Multiple RPC endpoints for fallback and resilience
-// Primary: SuiScan RPC (CORS-enabled, full indexing)
-// Fallback: Official Sui RPC
 const RPC_ENDPOINTS = {
   testnet: [
-    'https://rpc-testnet.suiscan.xyz:443', // Primary - CORS enabled
-    'https://fullnode.testnet.sui.io:443', // Fallback
+    'https://rpc-testnet.suiscan.xyz:443',
+    'https://fullnode.testnet.sui.io:443',
   ],
   mainnet: [
     'https://fullnode.mainnet.sui.io:443',
@@ -43,15 +40,8 @@ const { networkConfig, useNetworkVariable } = createNetworkConfig({
 });
 
 export { networkConfig, useNetworkVariable, RPC_ENDPOINTS };
-
-// Deployed package IDs on Sui Testnet - Credit-Based Lending System with Advanced DeFi Features
-// Package deployed: May 20, 2026 (Latest)
-// Transaction: yWYxR975eQrt2uuQuuMBqvAiGbHLYZXfgdSZ6SXjo3e
-// Includes: Risk Pools, Mudarabah (Islamic Finance), Enhanced DePIN with Revenue Tracking
 export const SUI_PACKAGE_ID = '0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5';
 
-// Real object IDs from Sui Testnet - Latest Deployment (May 20, 2026)
-// These must exist on blockchain for real transactions to work
 export const PROFILE_REGISTRY_OBJECT_ID = '0x59bee28062384ea12e53a1014dc32443090fc90e15caf4e90d56559d7bff315f';
 export const UPGRADE_CAP_OBJECT_ID = '0xc1f4a8ad5a8526647d61cd4a1e14e8f6cfbc78e3e38354aa9ad7f7a8551abd26';
 export const LENDING_POOL_OBJECT_ID = ''; // TODO: Extract from first transaction - created successfully
@@ -104,11 +94,10 @@ export const DEPIN_FINANCE_OBJECT_ID = '0xc19729095eaf30af890aa66172f906ce9f7050
 
 // Advanced DeFi Features - Risk Pools & Mudarabah (Islamic Finance)
 // Created after deployment - All pools are now active
-export const RISK_POOL_LOW = ''; // TODO: Extract from transaction - Level 1 created successfully
+export const RISK_POOL_LOW = '';
 export const RISK_POOL_MEDIUM = '0xdc498215dd5bbaec9377222cefcb559a10f7a814290fbd1572a2df40749b98e6';   // Level 2 - Medium Risk (400+ reputation)
 export const RISK_POOL_HIGH = '0x9276e0e3f3eeb9653a5c23fadeedc4bfa73e404fbf2870138e9aef2052c82311';     // Level 3 - High Risk (no minimum)
 export const MUDARABAH_POOL = '0x61064a963336445556012d57a7827e342e8fe6eb5be899da4f50263fbf4fab90';     // Profit-sharing pool (70/30 split)
 
 export const ACTIVE_NETWORK = 'testnet';
 export const EXPLORER_URL = 'https://suiscan.xyz/testnet';
-

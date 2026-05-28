@@ -341,7 +341,7 @@ const LendProduction = () => {
 
         <TabsContent value="standard" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
           {/* Pool Stats Cards */}
-          <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-4">
         <Card className="card-glow">
           <CardContent className="p-3 sm:pt-6 sm:pb-6 sm:px-6">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
@@ -396,14 +396,31 @@ const LendProduction = () => {
         <Card className="card-glow">
           <CardContent className="p-3 sm:pt-6 sm:pb-6 sm:px-6">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
-              <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
-              <span className="text-xs sm:text-sm text-muted-foreground">Your Balance</span>
+              <Gift className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-500" />
+              <span className="text-xs sm:text-sm text-muted-foreground">Yield Earned</span>
             </div>
-            {isLoadingBalance ? (
+            {isLoadingDeposits ? (
               <Skeleton className="h-6 sm:h-8 w-20" />
             ) : (
-              <p className="text-lg sm:text-2xl font-bold">
-                {balance?.toFixed(2) || '0.00'}{' '}
+              <p className="text-lg sm:text-2xl font-bold text-green-500">
+                {yieldEarned.toFixed(4)}{' '}
+                <span className="text-xs sm:text-sm text-muted-foreground">SUI</span>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="card-glow">
+          <CardContent className="p-3 sm:pt-6 sm:pb-6 sm:px-6">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+              <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
+              <span className="text-xs sm:text-sm text-muted-foreground">Total Value</span>
+            </div>
+            {isLoadingDeposits ? (
+              <Skeleton className="h-6 sm:h-8 w-20" />
+            ) : (
+              <p className="text-lg sm:text-2xl font-bold text-primary">
+                {(depositedBalance + yieldEarned).toFixed(4)}{' '}
                 <span className="text-xs sm:text-sm text-muted-foreground">SUI</span>
               </p>
             )}
