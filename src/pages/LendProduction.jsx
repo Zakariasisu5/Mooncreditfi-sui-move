@@ -64,103 +64,12 @@ const LendProduction = () => {
     }
 
     try {
-      // Step 1: Create vault if needed (for collateral)
-      let vaultData = null;
-      
-      if (!hasVault) {
-        console.log('🏗️ Creating new vault...');
-        toast.info('Creating collateral vault...');
-        
-        let createdVaultId = null;
-        const createVaultTx = CollateralService.createVaultTransaction();
-        
-        await executeSecureTransaction(createVaultTx, {
-          type: 'createVault',
-          validationParams: {},
-          onSuccess: (digest, txResult) => {
-            console.log('✅ Vault creation transaction successful!', digest);
-            console.log('📊 Transaction result:', txResult);
-            
-            // Extract vault ID from transaction effects
-            const createdObjects = txResult.effects?.created || [];
-            console.log('📦 Created objects:', createdObjects);
-            
-            const vaultObject = createdObjects.find(obj => 
-              obj.owner && typeof obj.owner === 'object' && obj.owner.Shared
-            );
-            
-            if (vaultObject) {
-              createdVaultId = vaultObject.reference.objectId;
-              console.log('✅ Vault created with ID:', createdVaultId);
-              toast.success('Vault created!');
-            } else {
-              console.warn('⚠️ Could not extract vault ID from transaction');
-            }
-          },
-          onError: (error) => {
-            console.error('❌ Vault creation failed:', error);
-            const friendlyError = ErrorService.getUserFriendlyError(error);
-            toast.error(`Failed to create vault: ${friendlyError.message}`);
-            throw error;
-          },
-        });
-        
-        // If we got the vault ID from transaction, use it directly
-        if (createdVaultId) {
-          console.log('✅ Using vault ID from transaction:', createdVaultId);
-          vaultData = {
-            objectId: createdVaultId,
-            collateralAmount: 0,
-            borrowedAmount: 0,
-          };
-        } else {
-          // Otherwise try to fetch it via events
-          console.log('🔄 Fetching vault via events...');
-          toast.info('Confirming vault creation...');
-          await invalidateAll();
-          
-          // Try to fetch vault with retries
-          let fetchAttempts = 0;
-          const maxFetchAttempts = 5;
-          
-          while (!vaultData && fetchAttempts < maxFetchAttempts) {
-            fetchAttempts++;
-            console.log(`🔄 Attempt ${fetchAttempts}/${maxFetchAttempts} to fetch vault...`);
-            vaultData = await CollateralVaultDataService.fetchCollateralVault(account.address);
-            
-            if (!vaultData && fetchAttempts < maxFetchAttempts) {
-              const delay = 2000 * fetchAttempts;
-              toast.info(`Waiting for vault confirmation... (${fetchAttempts}/${maxFetchAttempts})`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              await queryClient.refetchQueries({ queryKey: ['collateralVault', account.address] });
-            }
-          }
-          
-          if (!vaultData) {
-            toast.error('Unable to confirm vault creation. The vault may have been created but is not yet indexed. Please wait 30 seconds and try depositing again.');
-            return;
-          }
-        }
-      } else {
-        // Use existing vault
-        vaultData = vault;
-        console.log('✅ Using existing vault:', vaultData.objectId);
-      }
 
-      if (!vaultData || !vaultData.objectId) {
-        console.error('❌ No vault data available');
-        toast.error('Vault not available. Please try again.');
-        return;
-      }
-
-      console.log('✅ Vault confirmed:', vaultData.objectId);
-
-      // Step 2: Deposit to lending pool
-      console.log('💰 Step 2: Depositing to lending pool...');
+      // Deposit to lending pool (simplified - no vault needed for deposits)
+      console.log('💰 Depositing to lending pool...');
       toast.info('Depositing to lending pool...');
       const depositTx = LendingPoolService.createDepositTransaction(depositAmountNum);
       
-      let depositSuccess = false;
       await executeSecureTransaction(depositTx, {
         type: 'deposit',
         validationParams: {
@@ -168,53 +77,24 @@ const LendProduction = () => {
           balance,
         },
         onSuccess: (digest, txResult) => {
-          console.log('✅ Deposit to lending pool successful!', digest);
+          console.log('✅ Deposit successful!', digest);
           console.log('📊 Transaction result:', txResult);
-          toast.success(`Deposited ${depositAmountNum} SUI to lending pool`);
-          depositSuccess = true;
+          toast.success(`Successfully deposited ${depositAmountNum} SUI!`);
+          addNotification(`Deposited ${depositAmountNum} SUI`, 'success');
+          setDepositAmount('');
         },
         onError: (error) => {
-          console.error('❌ Deposit to lending pool failed:', error);
+          console.error('❌ Deposit failed:', error);
           const friendlyError = ErrorService.getUserFriendlyError(error);
           toast.error(friendlyError.message);
           throw error;
         },
       });
 
-      if (!depositSuccess) {
-        console.error('❌ Deposit did not succeed, stopping flow');
-        return;
-      }
-
       // Aggressively refetch lending data
       console.log('🔄 Refreshing lending data...');
-      await invalidateLendingQueries();
-
-      // Step 3: Also deposit to collateral vault (same amount)
-      console.log('💰 Step 3: Depositing to collateral vault...');
-      toast.info('Adding to collateral...');
-      const collateralTx = CollateralService.depositCollateralTransaction(vaultData.objectId, depositAmountNum);
-      await executeSecureTransaction(collateralTx, {
-        type: 'depositCollateral',
-        validationParams: { amount: depositAmountNum },
-        onSuccess: (digest) => {
-          console.log('✅ Collateral deposit successful!', digest);
-          toast.success(`Successfully deposited ${depositAmountNum} SUI! (Available for lending & borrowing)`);
-          addNotification(`Deposited ${depositAmountNum} SUI`, 'success');
-          setDepositAmount('');
-        },
-        onError: (error) => {
-          console.error('❌ Collateral deposit failed:', error);
-          const friendlyError = ErrorService.getUserFriendlyError(error);
-          toast.error(`Lending pool deposit succeeded, but collateral deposit failed: ${friendlyError.message}`);
-          setDepositAmount('');
-        },
-      });
-
-      // Final comprehensive refresh after all transactions complete
-      console.log('🔄 Final data refresh...');
       toast.info('Updating data from blockchain...');
-      await invalidateAll();
+      await invalidateLendingQueries();
       toast.success('Data updated successfully!');
       console.log('✅ Deposit flow complete!');
     } catch (error) {

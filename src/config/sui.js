@@ -41,10 +41,9 @@ const { networkConfig, useNetworkVariable } = createNetworkConfig({
 
 export { networkConfig, useNetworkVariable, RPC_ENDPOINTS };
 export const SUI_PACKAGE_ID = '0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5';
-
 export const PROFILE_REGISTRY_OBJECT_ID = '0x59bee28062384ea12e53a1014dc32443090fc90e15caf4e90d56559d7bff315f';
 export const UPGRADE_CAP_OBJECT_ID = '0xc1f4a8ad5a8526647d61cd4a1e14e8f6cfbc78e3e38354aa9ad7f7a8551abd26';
-export const LENDING_POOL_OBJECT_ID = '0xb1d0c030979b33b1266984a979c3d98958e0a735b6628d473e5df9166615b03e'; // Created successfully!
+export const LENDING_POOL_OBJECT_ID = '0xb1d0c030979b33b1266984a979c3d98958e0a735b6628d473e5df9166615b03e';
 export const CREDIT_PROFILE_OBJECT_ID = ''; // User-specific, created on demand
 
 // Helper function to check if an object ID is valid
