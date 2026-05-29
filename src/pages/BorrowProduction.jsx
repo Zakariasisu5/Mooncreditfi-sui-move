@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { useTransactionExecution } from '@/hooks/useTransactionExecution';
 import { useSecureTransaction } from '@/hooks/useSecureTransaction';
-import { useCreditProfile, useMaxBorrowLimit, useLendingPool, useInvalidateQueries, useUserLoans, useUserBalance, useCollateralVault } from '@/hooks/useContractData';
+import { useCreditProfile, useMaxBorrowLimit, useLendingPool, useInvalidateQueries, useUserLoans, useUserBalance, useCollateralVault, useUserRiskPoolLoans } from '@/hooks/useContractData';
 import { BorrowingService, CreditProfileService, ValidationService, ErrorService, CollateralService, RiskPoolService } from '@/services/contractService';
 import { CollateralVaultDataService } from '@/services/dataService';
 import { EXPLORER_URL } from '@/config/sui';
@@ -31,11 +31,14 @@ const BorrowProduction = () => {
   const [loanDuration, setLoanDuration] = useState(30); // Default 30 days
   const [selectedLoanId, setSelectedLoanId] = useState(null); // For repayment
   const [activeTab, setActiveTab] = useState('standard');
+  const [showCreditDetails, setShowCreditDetails] = useState(false); // Toggle for credit details
+  const [showCollateralInfo, setShowCollateralInfo] = useState(false); // Toggle for collateral info
 
   // Fetch data from blockchain
   const { data: profile, isLoading: isLoadingProfile, error: profileError } = useCreditProfile();
   const { data: pool, isLoading: isLoadingPool } = useLendingPool();
   const { data: loanData, isLoading: isLoadingLoans } = useUserLoans();
+  const { data: riskPoolLoanData, isLoading: isLoadingRiskPoolLoans } = useUserRiskPoolLoans();
   const { data: balance, isLoading: isLoadingBalance } = useUserBalance();
   const { data: vault, isLoading: isLoadingVault } = useCollateralVault();
   const { maxBorrowLimit, creditScore, creditRating, hasProfile } = useMaxBorrowLimit();
@@ -356,17 +359,37 @@ const BorrowProduction = () => {
         </TabsList>
 
         <TabsContent value="standard" className="space-y-6 mt-6">
-          {/* No Vault Alert - Guide users to deposit first */}
+          {/* Collapsible Collateral Info */}
           {isConnected && hasProfile && !hasVault && !isLoadingVault && (
-            <Alert>
-              <Shield className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-2">
-                  <p className="font-medium">Credit-Based Borrowing Available</p>
-                  <p className="text-sm">Collateral requirements depend on your credit score. Score 750+ = No collateral needed! Score 650-749 = 25% collateral. Score 550-649 = 50% collateral. Score 450-549 = 100% collateral.</p>
+            <div className="border rounded-lg">
+              <button
+                onClick={() => setShowCollateralInfo(!showCollateralInfo)}
+                className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Credit-Based Borrowing Info</span>
                 </div>
-              </AlertDescription>
-            </Alert>
+                <span className="text-xs text-muted-foreground">
+                  {showCollateralInfo ? '▼ Hide' : '▶ Show Details'}
+                </span>
+              </button>
+              
+              {showCollateralInfo && (
+                <div className="p-3 bg-muted/30 border-t">
+                  <p className="text-sm">
+                    Collateral requirements depend on your credit score:
+                  </p>
+                  <ul className="text-sm mt-2 space-y-1 ml-4">
+                    <li>• Score 750+ = <strong>No collateral needed!</strong></li>
+                    <li>• Score 650-749 = 25% collateral</li>
+                    <li>• Score 550-649 = 50% collateral</li>
+                    <li>• Score 450-549 = 100% collateral</li>
+                    <li>• Score below 450 = 150% collateral</li>
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Low Collateral Warning */}
@@ -456,39 +479,54 @@ const BorrowProduction = () => {
                 </p>
               </div>
 
-              <div className="p-3 bg-muted rounded-lg space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Your Credit Score</span>
-                  {isLoadingProfile ? (
-                    <span className="text-muted-foreground">Loading...</span>
-                  ) : (
-                    <span className="font-medium">{creditScore || 'N/A'}</span>
-                  )}
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Credit Tier</span>
-                  <Badge variant={creditScore >= 750 ? 'default' : creditScore >= 650 ? 'secondary' : 'outline'}>
-                    {creditScore >= 850 ? 'Excellent' : creditScore >= 750 ? 'Very Good' : creditScore >= 650 ? 'Good' : creditScore >= 550 ? 'Fair' : creditScore >= 450 ? 'Poor' : 'Very Poor'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Collateral Required</span>
-                  <span className="font-medium text-primary">
-                    {creditScore >= 750 ? '0% (None!)' : creditScore >= 650 ? '25%' : creditScore >= 550 ? '50%' : creditScore >= 450 ? '100%' : '150%'}
+              {/* Collapsible Credit Details */}
+              <div className="border rounded-lg">
+                <button
+                  onClick={() => setShowCreditDetails(!showCreditDetails)}
+                  className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                >
+                  <span className="text-sm font-medium">Credit Score Details</span>
+                  <span className="text-xs text-muted-foreground">
+                    {showCreditDetails ? '▼ Hide' : '▶ Show'}
                   </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Max Borrowable</span>
-                  <span className="font-medium">{maxBorrowLimit.toFixed(4)} SUI</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Interest Rate</span>
-                  <span className="font-medium">{interestRate.toFixed(1)}% APR</span>
-                </div>
-                {pool && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Available Liquidity</span>
-                    <span className="font-medium">{pool.availableLiquidity.toFixed(4)} SUI</span>
+                </button>
+                
+                {showCreditDetails && (
+                  <div className="p-3 bg-muted/30 space-y-1 border-t">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Your Credit Score</span>
+                      {isLoadingProfile ? (
+                        <span className="text-muted-foreground">Loading...</span>
+                      ) : (
+                        <span className="font-medium">{creditScore || 'N/A'}</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Credit Tier</span>
+                      <Badge variant={creditScore >= 750 ? 'default' : creditScore >= 650 ? 'secondary' : 'outline'}>
+                        {creditScore >= 850 ? 'Excellent' : creditScore >= 750 ? 'Very Good' : creditScore >= 650 ? 'Good' : creditScore >= 550 ? 'Fair' : creditScore >= 450 ? 'Poor' : 'Very Poor'}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Collateral Required</span>
+                      <span className="font-medium text-primary">
+                        {creditScore >= 750 ? '0% (None!)' : creditScore >= 650 ? '25%' : creditScore >= 550 ? '50%' : creditScore >= 450 ? '100%' : '150%'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Max Borrowable</span>
+                      <span className="font-medium">{maxBorrowLimit.toFixed(4)} SUI</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Interest Rate</span>
+                      <span className="font-medium">{interestRate.toFixed(1)}% APR</span>
+                    </div>
+                    {pool && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Available Liquidity</span>
+                        <span className="font-medium">{pool.availableLiquidity.toFixed(4)} SUI</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -800,6 +838,57 @@ const BorrowProduction = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Risk Pool Loan Activity */}
+          {riskPoolLoanData && riskPoolLoanData.totalLoans > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Risk Pool Loan Activity
+                </CardTitle>
+                <CardDescription>Your borrowing activity across risk-based pools</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-4 w-4 text-blue-500" />
+                      <p className="text-sm font-medium text-blue-500">Total Borrowed</p>
+                    </div>
+                    <p className="text-2xl font-bold">{riskPoolLoanData.totalBorrowed.toFixed(4)} SUI</p>
+                  </div>
+                  
+                  <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <p className="text-sm font-medium text-green-500">Total Repaid</p>
+                    </div>
+                    <p className="text-2xl font-bold">{riskPoolLoanData.totalRepaid.toFixed(4)} SUI</p>
+                  </div>
+                  
+                  <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-4 w-4 text-orange-500" />
+                      <p className="text-sm font-medium text-orange-500">Outstanding</p>
+                    </div>
+                    <p className="text-2xl font-bold">{riskPoolLoanData.totalOutstanding.toFixed(4)} SUI</p>
+                  </div>
+
+                  <div className="p-4 bg-purple-500/10 rounded-lg border border-purple-500/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield className="h-4 w-4 text-purple-500" />
+                      <p className="text-sm font-medium text-purple-500">Total Loans</p>
+                    </div>
+                    <p className="text-2xl font-bold">{riskPoolLoanData.totalLoans}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {riskPoolLoanData.hasActiveLoans ? 'Active loans' : 'All repaid'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <RiskPoolSelector
             userReputation={userReputation}

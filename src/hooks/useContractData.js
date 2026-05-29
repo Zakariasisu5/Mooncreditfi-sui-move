@@ -11,6 +11,7 @@ import {
   CollateralVaultDataService,
   DePINDataService,
   RiskPoolDataService,
+  UserRiskPoolLoanService,
   MudarabahPoolDataService,
   BalanceService,
   UserDepositService,
@@ -221,6 +222,25 @@ export const useRiskPools = (poolIds = [], options = {}) => {
 };
 
 /**
+ * Hook to fetch user's risk pool loan data
+ * @param {Object} options - Query options
+ * @returns {Object} Query result with user's risk pool loan data
+ */
+export const useUserRiskPoolLoans = (options = {}) => {
+  const account = useCurrentAccount();
+  const userAddress = account?.address;
+
+  return useQuery({
+    queryKey: ['userRiskPoolLoans', userAddress],
+    queryFn: () => UserRiskPoolLoanService.fetchUserRiskPoolLoans(userAddress),
+    enabled: !!userAddress,
+    refetchInterval: 5000, // Fast refresh for loan data
+    staleTime: 2000,
+    ...options,
+  });
+};
+
+/**
  * Hook to fetch Mudarabah pool data
  * @param {string} poolObjectId - Mudarabah pool object ID
  * @param {Object} options - Query options
@@ -300,6 +320,7 @@ export const useInvalidateQueries = () => {
         queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userRiskPoolLoans', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['userDePINNFTs', userAddress] }),
         
         // Global/pool queries
@@ -318,6 +339,7 @@ export const useInvalidateQueries = () => {
         queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['userDeposits', userAddress], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['userRiskPoolLoans', userAddress], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
       ]);
       
@@ -335,6 +357,7 @@ export const useInvalidateQueries = () => {
           queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' }),
           queryClient.refetchQueries({ queryKey: ['userDeposits', userAddress], type: 'active' }),
           queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['userRiskPoolLoans', userAddress], type: 'active' }),
           queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
         ]);
       }
@@ -389,6 +412,7 @@ export const useInvalidateQueries = () => {
         queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['userLoans', userAddress] }),
+        queryClient.invalidateQueries({ queryKey: ['userRiskPoolLoans', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['userBalance', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['lendingPool'] }),
       ]);
@@ -397,6 +421,7 @@ export const useInvalidateQueries = () => {
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['creditProfile', userAddress], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['userRiskPoolLoans', userAddress], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' }),
       ]);
       
@@ -408,6 +433,7 @@ export const useInvalidateQueries = () => {
         await Promise.all([
           queryClient.refetchQueries({ queryKey: ['creditProfile', userAddress], type: 'active' }),
           queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['userRiskPoolLoans', userAddress], type: 'active' }),
           queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' }),
         ]);
       }
@@ -505,6 +531,7 @@ export default {
   useUserDePINNFTs,
   useRiskPool,
   useRiskPools,
+  useUserRiskPoolLoans,
   useMudarabahPool,
   useMudarabahDistributionHistory,
   useMaxBorrowLimit,

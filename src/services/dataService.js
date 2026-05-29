@@ -1136,6 +1136,141 @@ export const UserLoanService = {
 };
 
 /**
+ * User Risk Pool Loan Service - Track user loans in risk-based pools
+ */
+export const UserRiskPoolLoanService = {
+  /**
+   * Fetch user's risk pool loan data from events
+   * @param {string} userAddress - User's Sui address
+   * @returns {Promise<Object>} User risk pool loan data
+   */
+  fetchUserRiskPoolLoans: async (userAddress) => {
+    try {
+      const suiClient = getSuiClient();
+      
+      console.log('🔍 Fetching risk pool loans for user:', userAddress);
+      console.log('📦 Package ID:', SUI_PACKAGE_ID);
+      
+      // Query risk pool borrow events
+      let borrowEvents = { data: [] };
+      try {
+        const eventType = `${SUI_PACKAGE_ID}::risk_pool::BorrowEvent`;
+        console.log('🔍 Querying risk pool borrow events with type:', eventType);
+        
+        borrowEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: eventType,
+          },
+          limit: 1000,
+          order: 'descending',
+        });
+        
+        console.log('✅ Found risk pool borrow events:', borrowEvents.data?.length || 0);
+      } catch (eventError) {
+        console.warn('⚠️ Could not fetch risk pool borrow events:', eventError.message);
+      }
+
+      // Query risk pool repay events
+      let repayEvents = { data: [] };
+      try {
+        const eventType = `${SUI_PACKAGE_ID}::risk_pool::RepayEvent`;
+        console.log('🔍 Querying risk pool repay events with type:', eventType);
+        
+        repayEvents = await suiClient.queryEvents({
+          query: {
+            MoveEventType: eventType,
+          },
+          limit: 1000,
+          order: 'descending',
+        });
+        
+        console.log('✅ Found risk pool repay events:', repayEvents.data?.length || 0);
+      } catch (eventError) {
+        console.warn('⚠️ Could not fetch risk pool repay events:', eventError.message);
+      }
+
+      // Calculate user's loans per pool
+      const poolLoans = {}; // { poolId: { borrowed, repaid, outstanding, count } }
+      let totalBorrowed = 0;
+      let totalRepaid = 0;
+      let totalLoans = 0;
+
+      // Process borrow events
+      if (borrowEvents.data) {
+        borrowEvents.data.forEach(event => {
+          const parsedEvent = event.parsedJson;
+          if (parsedEvent && parsedEvent.borrower === userAddress) {
+            const amount = mistToSui(parsedEvent.amount);
+            const poolId = parsedEvent.pool_id || 'unknown';
+            
+            if (!poolLoans[poolId]) {
+              poolLoans[poolId] = { borrowed: 0, repaid: 0, outstanding: 0, count: 0 };
+            }
+            
+            poolLoans[poolId].borrowed += amount;
+            poolLoans[poolId].count += 1;
+            totalBorrowed += amount;
+            totalLoans += 1;
+            
+            console.log('💰 Found user risk pool borrow:', amount, 'SUI from pool', poolId);
+          }
+        });
+      }
+
+      // Process repay events
+      if (repayEvents.data) {
+        repayEvents.data.forEach(event => {
+          const parsedEvent = event.parsedJson;
+          if (parsedEvent && parsedEvent.borrower === userAddress) {
+            const amount = mistToSui(parsedEvent.amount);
+            const poolId = parsedEvent.pool_id || 'unknown';
+            
+            if (!poolLoans[poolId]) {
+              poolLoans[poolId] = { borrowed: 0, repaid: 0, outstanding: 0, count: 0 };
+            }
+            
+            poolLoans[poolId].repaid += amount;
+            totalRepaid += amount;
+            
+            console.log('💸 Found user risk pool repayment:', amount, 'SUI to pool', poolId);
+          }
+        });
+      }
+
+      // Calculate outstanding debt per pool
+      Object.keys(poolLoans).forEach(poolId => {
+        poolLoans[poolId].outstanding = poolLoans[poolId].borrowed - poolLoans[poolId].repaid;
+      });
+
+      const totalOutstanding = totalBorrowed - totalRepaid;
+      const hasActiveLoans = totalOutstanding > 0.001;
+
+      const result = {
+        totalBorrowed,
+        totalRepaid,
+        totalOutstanding,
+        totalLoans,
+        hasActiveLoans,
+        poolLoans, // Breakdown by pool
+      };
+
+      console.log('✅ Risk pool loan data:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error fetching risk pool loans:', error);
+      return {
+        totalBorrowed: 0,
+        totalRepaid: 0,
+        totalOutstanding: 0,
+        totalLoans: 0,
+        hasActiveLoans: false,
+        poolLoans: {},
+      };
+    }
+  },
+};
+
+/**
  * Risk Pool Data Service
  */
 export const RiskPoolDataService = {
@@ -1361,6 +1496,7 @@ export default {
   CollateralVaultDataService,
   DePINDataService,
   RiskPoolDataService,
+  UserRiskPoolLoanService,
   MudarabahPoolDataService,
   TransactionDataService,
   BalanceService,

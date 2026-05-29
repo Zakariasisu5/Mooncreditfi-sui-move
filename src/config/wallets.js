@@ -1,7 +1,4 @@
-/**
- * Wallet Configuration for Sui dApp
- * Handles wallet detection, deep linking, and connection management
- */
+
 
 // Supported wallets configuration
 export const SUPPORTED_WALLETS = {
