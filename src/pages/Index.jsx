@@ -27,7 +27,7 @@ const Index = () => {
   const { isConnected, account } = useWalletContext();
   const { pool, profile, balance, isLoading } = useLendingData();
   const { creditScore, maxBorrowLimit } = useMaxBorrowLimit();
-  const { data: userDeposits, isLoading: isLoadingDeposits } = useUserDeposits();
+  const { data: userDeposits, isLoading: isLoadingDeposits, refetch: refetchDeposits } = useUserDeposits();
   const { data: depinProjects, isLoading: isLoadingDePIN } = useDePINProjects(DEPIN_PROJECTS);
   const { invalidateAll } = useInvalidateQueries();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -44,15 +44,25 @@ const Index = () => {
   const depinTVL = depinProjects?.reduce((sum, project) => sum + project.currentAmount, 0) || 0;
   const totalTVL = totalDeposited + depinTVL;
 
+  // Force refresh when user navigates to dashboard
+  useEffect(() => {
+    if (isConnected) {
+      console.log('📊 Dashboard mounted - refreshing data...');
+      refetchDeposits();
+    }
+  }, [isConnected, refetchDeposits]);
+
   // Handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
+      console.log('🔄 Manual refresh triggered');
       await invalidateAll();
       // Give a moment for queries to refetch
       await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('✅ Manual refresh complete');
     } catch (error) {
-      console.error('Refresh error:', error);
+      console.error('❌ Refresh error:', error);
     } finally {
       setIsRefreshing(false);
     }
@@ -81,7 +91,7 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Dashboard Overview</h2>
             <Badge variant="outline" className="text-xs">
-              Real-time
+              {isLoadingDeposits || isLoading ? 'Updating...' : 'Real-time'}
             </Badge>
           </div>
           <Button
@@ -90,8 +100,9 @@ const Index = () => {
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="h-8"
+            title="Refresh all data"
           >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isRefreshing || isLoadingDeposits ? 'animate-spin' : ''}`} />
           </Button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">

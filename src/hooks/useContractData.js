@@ -26,8 +26,8 @@ export const useLendingPool = (options = {}) => {
   return useQuery({
     queryKey: ['lendingPool'],
     queryFn: () => LendingPoolDataService.fetchPoolData(),
-    refetchInterval: 15000,
-    staleTime: 5000, 
+    refetchInterval: 5000, // Reduced from 15s to 5s for faster updates
+    staleTime: 2000, // Reduced from 5s to 2s
     ...options,
   });
 };
@@ -45,8 +45,8 @@ export const useCreditProfile = (options = {}) => {
     queryKey: ['creditProfile', userAddress],
     queryFn: () => CreditProfileDataService.fetchCreditProfile(userAddress),
     enabled: !!userAddress, // Only fetch if user is connected
-    refetchInterval: 20000,
-    staleTime: 5000, 
+    refetchInterval: 5000, // Reduced from 20s to 5s
+    staleTime: 2000, // Reduced from 5s to 2s
     ...options,
   });
 };
@@ -64,8 +64,8 @@ export const useCollateralVault = (options = {}) => {
     queryKey: ['collateralVault', userAddress],
     queryFn: () => CollateralVaultDataService.fetchCollateralVault(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 30000, // Increased from 15s to 30s
-    staleTime: 20000, // Increased from 5s to 20s
+    refetchInterval: 5000, // Reduced from 30s to 5s for faster updates
+    staleTime: 2000, // Reduced from 20s to 2s
     retry: 3, // Retry failed queries 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     ...options,
@@ -85,8 +85,8 @@ export const useUserBalance = (options = {}) => {
     queryKey: ['userBalance', userAddress],
     queryFn: () => BalanceService.fetchSuiBalance(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 15000,
-    staleTime: 5000,
+    refetchInterval: 5000, // Reduced from 15s to 5s
+    staleTime: 2000, // Reduced from 5s to 2s
     ...options,
   });
 };
@@ -108,8 +108,8 @@ export const useUserDeposits = (options = {}) => {
     queryKey: ['userDeposits', userAddress, poolAPY],
     queryFn: () => UserDepositService.fetchUserDeposits(userAddress, poolAPY),
     enabled: !!userAddress,
-    refetchInterval: 20000,
-    staleTime: 5000,
+    refetchInterval: 5000, // Reduced from 20s to 5s
+    staleTime: 2000, // Reduced from 5s to 2s
     ...options,
   });
 };
@@ -127,8 +127,8 @@ export const useUserLoans = (options = {}) => {
     queryKey: ['userLoans', userAddress],
     queryFn: () => UserLoanService.fetchUserLoans(userAddress),
     enabled: !!userAddress,
-    refetchInterval: 15000, 
-    staleTime: 5000,
+    refetchInterval: 5000, // Reduced from 15s to 5s
+    staleTime: 2000, // Reduced from 5s to 2s
     ...options,
   });
 };
@@ -286,10 +286,12 @@ export const useInvalidateQueries = () => {
 
   return {
     /**
-     * Invalidate ALL queries and force immediate refetch
+     * Invalidate ALL queries and force immediate refetch with aggressive polling
      * CRITICAL: Use after any state-changing transaction
      */
     invalidateAll: async () => {
+      console.log('🔄 Starting aggressive data refresh after transaction...');
+      
       // Step 1: Invalidate all queries to mark them as stale
       await Promise.all([
         // User-specific queries
@@ -318,12 +320,35 @@ export const useInvalidateQueries = () => {
         queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
       ]);
+      
+      // Step 3: Aggressive polling - refetch 3 more times over 10 seconds
+      // This handles blockchain indexing delays
+      const pollIntervals = [3000, 6000, 10000]; // 3s, 6s, 10s after initial refetch
+      
+      for (const delay of pollIntervals) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(`🔄 Polling data refresh (${delay}ms after transaction)...`);
+        
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['creditProfile', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['userDeposits', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
+        ]);
+      }
+      
+      console.log('✅ Data refresh complete');
     },
     
     /**
      * Invalidate lending-related queries (deposit, withdraw, lend actions)
+     * Includes aggressive polling for blockchain indexing delays
      */
     invalidateLendingQueries: async () => {
+      console.log('🔄 Refreshing lending data after transaction...');
+      
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['lendingPool'] }),
         queryClient.invalidateQueries({ queryKey: ['userDeposits', userAddress] }),
@@ -337,12 +362,29 @@ export const useInvalidateQueries = () => {
         queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' }),
       ]);
+      
+      // Aggressive polling - 2 more times over 8 seconds
+      const pollIntervals = [4000, 8000];
+      
+      for (const delay of pollIntervals) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['userDeposits', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['lendingPool'], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['userBalance', userAddress], type: 'active' }),
+        ]);
+      }
+      
+      console.log('✅ Lending data refresh complete');
     },
     
     /**
      * Invalidate borrow-related queries (borrow, repay actions)
+     * Includes aggressive polling for blockchain indexing delays
      */
     invalidateBorrowQueries: async () => {
+      console.log('🔄 Refreshing borrow data after transaction...');
+      
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['creditProfile', userAddress] }),
         queryClient.invalidateQueries({ queryKey: ['collateralVault', userAddress] }),
@@ -357,6 +399,20 @@ export const useInvalidateQueries = () => {
         queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
         queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' }),
       ]);
+      
+      // Aggressive polling - 2 more times over 8 seconds
+      const pollIntervals = [4000, 8000];
+      
+      for (const delay of pollIntervals) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['creditProfile', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['userLoans', userAddress], type: 'active' }),
+          queryClient.refetchQueries({ queryKey: ['collateralVault', userAddress], type: 'active' }),
+        ]);
+      }
+      
+      console.log('✅ Borrow data refresh complete');
     },
     
     /**

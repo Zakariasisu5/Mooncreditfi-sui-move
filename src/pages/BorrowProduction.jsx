@@ -90,9 +90,10 @@ const BorrowProduction = () => {
         },
       });
 
-      // Wait for on-chain confirmation and refetch data
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Wait for on-chain confirmation and aggressively refetch all borrow-related data
+      toast.info('Updating data from blockchain...');
       await invalidateBorrowQueries();
+      toast.success('Data updated successfully!');
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Create profile error:', error);
@@ -194,9 +195,10 @@ const BorrowProduction = () => {
         },
       });
 
-      // Wait for on-chain confirmation and refetch all borrow-related data
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Wait for on-chain confirmation and aggressively refetch all borrow-related data
+      toast.info('Updating data from blockchain...');
       await invalidateBorrowQueries();
+      toast.success('Data updated successfully!');
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Borrow error:', error);
@@ -237,9 +239,10 @@ const BorrowProduction = () => {
         },
       });
 
-      // Wait for on-chain confirmation and refetch all borrow-related data
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Wait for on-chain confirmation and aggressively refetch all borrow-related data
+      toast.info('Updating data from blockchain...');
       await invalidateBorrowQueries();
+      toast.success('Data updated successfully!');
     } catch (error) {
       // Error already handled by secure transaction hook
       console.error('Repay error:', error);
