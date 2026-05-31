@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Shield, TrendingUp, Zap, Users, CheckCircle, Lock, Globe, Coins, Sun, Wifi, Car, FileText, Github, ExternalLink, Award, Target, Rocket, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WalletConnectButton from '@/components/WalletConnectButton';
-import heroImage from '@/assets/hero-defi.jpg';
+import heroImage from '@/assets/preview.webp';
 
 const Landing = () => {
   const navigate = useNavigate();

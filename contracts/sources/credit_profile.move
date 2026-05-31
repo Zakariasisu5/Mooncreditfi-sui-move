@@ -16,9 +16,9 @@ module mooncreditfi::credit_profile {
         id: UID,
         owner: address,
         score: u64,
-        debt: u64,  // DEPRECATED: Kept for backward compatibility, use active_loans instead
-        reputation: u64,  // NEW: Reputation score (0-1000)
-        risk_level: u8,   // NEW: Risk tier (1=low, 2=medium, 3=high)
+        debt: u64,
+        reputation: u64,
+        risk_level: u8,    
         total_borrowed: u64,
         total_repaid: u64,
         loan_count: u64,
@@ -64,8 +64,8 @@ module mooncreditfi::credit_profile {
             owner: sender,
             score: credit_scoring::get_default_score(), // 500
             debt: 0,
-            reputation: 500,  // Initialize to 500
-            risk_level: 2,    // Initialize to 2 (medium risk)
+            reputation: 500,
+            risk_level: 2, 
             total_borrowed: 0,
             total_repaid: 0,
             loan_count: 0,
