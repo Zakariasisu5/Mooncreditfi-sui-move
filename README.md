@@ -11,23 +11,55 @@
 
 **✅ LIVE ON SUI TESTNET**
 
-- **Package ID**: `0x50049e571300f0ea3f493501d99bc46d5ca18e696f25dd2ceae145b54eb45218`
+- **Package ID**: `0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5`
 - **Network**: Sui Testnet
-- **Deployed**: March 28, 2026
+- **Deployed**: May 2026
 - **Deployer Address**: `0x1b5f1da225b2ead0d8ed23c70bcbe78f872756953870a3429c7f347a239c1160`
-- **Explorer**: [View on Suiscan](https://suiscan.xyz/testnet/object/0x50049e571300f0ea3f493501d99bc46d5ca18e696f25dd2ceae145b54eb45218)
+- **Explorer**: [View on Suiscan](https://suiscan.xyz/testnet/object/0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5)
 
-### 📦 Deployed Objects
+### 📦 Core Deployed Objects
 
-- **Lending Pool**: `0x4d3a3ba82427978d9fe7a0a8f6d93e8c31917c45ed3fced2b09a1431e3678b0c`
-- **Credit Profile**: `0x7332d82055668698dfb76c0f25a4da244a99d1e31af30ed0e8e2d9c3cb493ba2`
-- **DePIN Project**: `0x6bc7de62357c6573fb1e0f37f0737bf0eeb1a428226afc1003233f00b67e8ee5`
+- **Profile Registry**: `0x59bee28062384ea12e53a1014dc32443090fc90e15caf4e90d56559d7bff315f`
+- **Lending Pool**: `0xb1d0c030979b33b1266984a979c3d98958e0a735b6628d473e5df9166615b03e`
+- **Upgrade Cap**: `0xc1f4a8ad5a8526647d61cd4a1e14e8f6cfbc78e3e38354aa9ad7f7a8551abd26`
+
+### 🎯 Risk-Based Lending Pools
+
+- **Low Risk Pool** (Level 1): `0xb70fa7c6e48e0a8f79a3d12c9a7df37f0c9a3d3b3b2cda2aacc0e3bd903d8cc4`
+  - Min Reputation: 600+
+  - APY: 3.5%
+  
+- **Medium Risk Pool** (Level 2): `0xdc498215dd5bbaec9377222cefcb559a10f7a814290fbd1572a2df40749b98e6`
+  - Min Reputation: 400+
+  - APY: 6.5%
+  
+- **High Risk Pool** (Level 3): `0x9276e0e3f3eeb9653a5c23fadeedc4bfa73e404fbf2870138e9aef2052c82311`
+  - Min Reputation: 0 (No minimum)
+  - APY: 12.0%
+
+### 🕌 Islamic Finance Pool
+
+- **Mudarabah Pool**: `0x61064a963336445556012d57a7827e342e8fe6eb5be899da4f50263fbf4fab90`
+  - Profit-sharing: 70/30 split
+  - Sharia-compliant lending
+
+### 🌍 DePIN Projects
+
+- **Solar Farm Network**: `0xc19729095eaf30af890aa66172f906ce9f7050d0cff1137ac460b0fb0a283c36`
+- **EV Charging Network**: `0x16ff67f07c3141cccc8602bd13485cd1721d2157c38e4d725471910ee6769eb5`
+- **IoT Sensor Network**: `0x067bb4f01c62c6ffb2962a351e718beb53f26a475a672d14b0e463e12ef589d4`
+- **Satellite Internet**: `0x3cf276315abb1ca26e4d581eddb1c39e6938d7978b12a99c1f5249dd0f2e5579`
 
 ### 🎯 Contract Modules
 
 - ✅ `credit_profile` - Credit scoring and profile management
-- ✅ `lending_pool` - Liquidity pool management
+- ✅ `credit_scoring` - Advanced credit scoring algorithms
+- ✅ `lending_pool` - Standard liquidity pool management
 - ✅ `lending_logic` - Borrow/lend operations
+- ✅ `collateral` - Collateral vault management
+- ✅ `loan` - Loan lifecycle management
+- ✅ `risk_pool` - Risk-based lending pools
+- ✅ `mudarabah` - Islamic finance (profit-sharing)
 - ✅ `depin` - DePIN project funding and NFTs
 
 ---
@@ -69,7 +101,7 @@ Opaque lending decisions and hidden fees.
 
 ## ✅ Solution
 
-MoonCreditFi combines **credit + lending + infrastructure funding** into a unified protocol.
+MoonCreditFi combines **credit + lending + infrastructure funding** into a unified protocol with multiple lending options.
 
 ### 🧩 Core Modules
 
@@ -77,27 +109,39 @@ MoonCreditFi combines **credit + lending + infrastructure funding** into a unifi
 
 * Score range: **300–850**
 * Tracks:
-
   * Loan history
   * Repayments
   * Defaults
+  * Reputation score
 * Fully transparent & portable
 
 ---
 
-#### 2. 💰 Reputation-Based Lending
+#### 2. 💰 Multi-Tier Lending System
 
+**Standard Lending:**
 * Borrow based on **credit score**
 * Lower collateral requirements
-* Dynamic interest rates
+* Dynamic interest rates (3-15% APY)
+
+**Risk-Based Pools:**
+* Three risk tiers (Low, Medium, High)
+* Reputation-gated access
+* Competitive rates (3.5-12% APY)
+
+**Islamic Finance (Mudarabah):**
+* Sharia-compliant profit-sharing
+* 70/30 split model
+* Interest-free lending
 
 ---
 
 #### 3. 🌍 DePIN Funding Module
 
 * Fund real-world projects (solar, compute, connectivity)
-* Earn **real yield**
+* Earn **real yield** (8-18% APY)
 * Receive **Proof-of-Impact NFTs**
+* Track revenue in real-time
 
 ---
 
@@ -106,23 +150,109 @@ MoonCreditFi combines **credit + lending + infrastructure funding** into a unifi
 ```mermaid
 flowchart LR
 A[Connect Wallet] --> B[Build Credit Profile]
-B --> C[Deposit / Borrow]
-C --> D[Repay Loan]
-D --> E[Score Improves]
-E --> F[Better Loan Terms]
-F --> G[Fund DePIN Projects]
+B --> C[Choose Lending Option]
+C --> D1[Standard Lending]
+C --> D2[Risk-Based Pools]
+C --> D3[Islamic Finance]
+D1 --> E[Repay Loan]
+D2 --> E
+D3 --> E
+E --> F[Score Improves]
+F --> G[Better Loan Terms]
+G --> H[Fund DePIN Projects]
 ```
+
+---
+
+## 🎯 Key Features
+
+### 💳 Multiple Lending Options
+
+**1. Standard Credit-Based Lending**
+- Borrow based on credit score (300-850)
+- Collateral requirements scale with score
+- Interest rates: 3-15% APY
+- Max borrow: 10-100 SUI
+
+**2. Risk-Based Pool Lending**
+- Three risk tiers (Low, Medium, High)
+- Reputation-gated access (0-1000 score)
+- Competitive rates: 3.5-12% APY
+- Pool-specific liquidity
+
+**3. Islamic Finance (Mudarabah)**
+- Sharia-compliant profit-sharing
+- 0% interest (profit-based returns)
+- 70/30 split (investor/manager)
+- Ethical lending alternative
+
+### 📊 Real-Time Data Updates
+
+- **Fast Refresh**: 5-second query intervals
+- **Aggressive Polling**: 3 retries after transactions
+- **Event-Based Tracking**: Blockchain event monitoring
+- **Instant UI Updates**: React Query cache invalidation
+
+### 🔐 Security Features
+
+- **Collateral Vaults**: Secure collateral management
+- **Credit Verification**: Automated credit checks
+- **Transaction Guards**: Prevents duplicate submissions
+- **Rate Limiting**: Max 5 transactions/minute
+- **Input Validation**: Minimum amount checks
+
+### 📈 Loan Activity Tracking
+
+**Standard Loans:**
+- Total Borrowed
+- Total Repaid
+- Outstanding Debt
+- Loan Count
+- Active Loan Status
+
+**Risk Pool Loans:**
+- Per-pool breakdown
+- Total across all pools
+- Outstanding by pool
+- Loan history
+
+### 🌍 DePIN Investment Features
+
+- **Multiple Projects**: 4+ active infrastructure projects
+- **Real Yield**: 8-18% APY
+- **NFT Proof**: Blockchain-verified ownership
+- **Revenue Tracking**: Real-time revenue monitoring
+- **Proportional Distribution**: Fair revenue sharing
 
 ---
 
 ## 📊 Credit Score Model
 
-| Score   | Rating    | Max Borrow | Interest |
-| ------- | --------- | ---------- | -------- |
-| 750–850 | Excellent | 100 SUI    | 3–5%     |
-| 650–749 | Good      | 50 SUI     | 5–8%     |
-| 550–649 | Fair      | 25 SUI     | 8–12%    |
-| 300–549 | Building  | 10 SUI     | 12–15%   |
+### Standard Lending
+
+| Score   | Rating    | Max Borrow | Interest | Collateral |
+| ------- | --------- | ---------- | -------- | ---------- |
+| 750–850 | Excellent | 100 SUI    | 3–5%     | 0%         |
+| 650–749 | Good      | 50 SUI     | 5–8%     | 25%        |
+| 550–649 | Fair      | 25 SUI     | 8–12%    | 50%        |
+| 300–549 | Building  | 10 SUI     | 12–15%   | 100%       |
+
+### Risk-Based Pools
+
+| Pool   | Risk Level | Min Reputation | APY   | Access       |
+| ------ | ---------- | -------------- | ----- | ------------ |
+| Low    | Level 1    | 600+           | 3.5%  | Restricted   |
+| Medium | Level 2    | 400+           | 6.5%  | Moderate     |
+| High   | Level 3    | 0              | 12.0% | Open to All  |
+
+### Islamic Finance (Mudarabah)
+
+| Feature        | Details                    |
+| -------------- | -------------------------- |
+| Model          | Profit-sharing (70/30)     |
+| Interest       | 0% (Interest-free)         |
+| Profit Split   | 70% Investor / 30% Manager |
+| Compliance     | Sharia-compliant           |
 
 ### 📈 Score Increases
 
@@ -250,21 +380,24 @@ D --> F[Supabase Optional]
 **✅ Deployed on Sui Testnet**
 
 ```
-Package ID: 0x50049e571300f0ea3f493501d99bc46d5ca18e696f25dd2ceae145b54eb45218
+Package ID: 0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5
 Network: Sui Testnet
-Modules: credit_profile, lending_pool, lending_logic, depin
+Modules: credit_profile, credit_scoring, lending_pool, lending_logic, 
+         collateral, loan, risk_pool, mudarabah, depin
 ```
 
 ### 📄 CreditProfile Module
 
 Functions:
 
-* `create_profile()` - Create credit profile (no parameters)
+* `create_profile()` - Create credit profile
 * `get_score()` - Get credit score
+* `get_reputation()` - Get reputation score
 * `get_owner()` - Get profile owner
-* `record_borrow()` - Record loan (internal)
-* `record_repayment()` - Record repayment (internal)
-* `record_default()` - Record default (internal)
+* `record_borrow()` - Record loan
+* `record_repayment()` - Record repayment
+* `record_default()` - Record default
+* `update_reputation()` - Update reputation score
 
 ---
 
@@ -272,13 +405,12 @@ Functions:
 
 Functions:
 
-* `create_pool()` - Create lending pool with interest rate
+* `create_pool(base_rate, risk_premium)` - Create lending pool
 * `get_total_liquidity()` - Get pool liquidity
 * `get_total_borrowed()` - Get total borrowed
-* `add_liquidity()` - Add liquidity (internal)
-* `remove_liquidity()` - Remove liquidity (internal)
-* `record_borrow()` - Record borrow (internal)
-* `record_repayment()` - Record repayment (internal)
+* `get_interest_rate()` - Get current interest rate
+* `add_liquidity()` - Add liquidity
+* `remove_liquidity()` - Remove liquidity
 
 ---
 
@@ -286,10 +418,44 @@ Functions:
 
 Functions:
 
-* `deposit()` - Deposit SUI to pool (uses Coin<SUI>)
+* `deposit()` - Deposit SUI to pool
 * `withdraw()` - Withdraw from pool
 * `borrow()` - Borrow with credit check
-* `repay()` - Repay loan (uses Coin<SUI>)
+* `repay()` - Repay loan
+
+---
+
+### 🛡️ RiskPool Module
+
+Functions:
+
+* `create_risk_pool(risk_level)` - Create risk-based pool (1=Low, 2=Medium, 3=High)
+* `deposit_to_risk_pool()` - Deposit liquidity to risk pool
+* `borrow_from_risk_pool()` - Borrow based on reputation
+* `get_total_liquidity()` - Get pool liquidity
+* `get_risk_level()` - Get risk level
+
+---
+
+### � Mudarabah Module
+
+Functions:
+
+* `create_mudarabah_pool()` - Create Islamic finance pool
+* `deposit_to_mudarabah()` - Deposit to profit-sharing pool
+* `distribute_profit()` - Distribute profits (70/30 split)
+* `withdraw_from_mudarabah()` - Withdraw investment
+
+---
+
+### 🏦 Collateral Module
+
+Functions:
+
+* `create_vault()` - Create collateral vault
+* `deposit_collateral()` - Deposit collateral
+* `withdraw_collateral()` - Withdraw collateral
+* `get_collateral_amount()` - Get vault balance
 
 ---
 
@@ -298,7 +464,7 @@ Functions:
 Functions:
 
 * `create_project()` - Create DePIN project (name, description, target, APY)
-* `fund_project()` - Fund project & receive NFT (uses Coin<SUI>)
+* `fund_project()` - Fund project & receive NFT
 * `distribute_revenue()` - Distribute proportional revenue to NFT holders
 * `transfer_nft()` - Transfer investment NFT
 * `get_project_name()` - Get project name
@@ -306,12 +472,11 @@ Functions:
 * `get_project_current()` - Get current funding
 * `get_project_apy()` - Get project APY
 
-**Multiple Projects Supported:**
-- Solar Farm Network (Solar energy infrastructure)
-- Smart City Sensors (IoT monitoring network)
-- 5G Hotspot Network (Wireless infrastructure)
-- Distributed Storage Grid (Data storage network)
-- EV Charging Stations (Electric vehicle infrastructure)
+**Active Projects:**
+- Solar Farm Network (100 SUI target, 12% APY)
+- EV Charging Network (120 SUI target, 11% APY)
+- IoT Sensor Network (80 SUI target, 13% APY)
+- Satellite Internet (300 SUI target, 18% APY)
 
 See [scripts/README-DEPIN.md](scripts/README-DEPIN.md) for project creation guide.
 
@@ -324,36 +489,145 @@ See [scripts/README-DEPIN.md](scripts/README-DEPIN.md) for project creation guid
 * ✅ Pausable Contracts
 * ✅ Role-Based Access Control
 * ✅ Upgradeable Packages
-* ✅ Oracle Fallbacks
-* ✅ Rate Limiting
+* ✅ Rate Limiting (5 tx/min per user)
+* ✅ Input Validation
+* ✅ Collateral Vault Protection
+* ✅ Credit Score Verification
+* ✅ Transaction Guards
+
+---
+
+## 🧪 Testing
+
+### Move Contract Tests
+
+```bash
+cd contracts
+sui move test
+```
+
+**Test Coverage:**
+- ✅ Credit-based lending tests
+- ✅ Lending pool tests
+- ✅ Referral trust tests
+- ✅ Reputation update tests
+- ✅ Withdrawal security tests
+
+**Test Results:** 18/18 tests passing
+
+### Frontend Testing
+
+The frontend includes comprehensive data validation and error handling:
+- Transaction execution with retry logic
+- Blockchain event monitoring
+- Cache invalidation strategies
+- Real-time data synchronization
+
+---
+
+## 📜 Available Scripts
+
+### Contract Deployment
+
+```bash
+# Deploy contracts to testnet
+cd contracts
+sui client publish --gas-budget 500000000
+
+# Create lending pool
+./scripts/initialize-objects.sh
+
+# Create risk pools
+./scripts/create-risk-pool-low.sh
+
+# Create DePIN projects
+./scripts/create-depin-project.sh
+```
+
+### Testing Scripts
+
+```bash
+# Test contracts
+./scripts/test-contracts.ps1
+
+# Initialize all objects
+./scripts/initialize-all-objects.sh
+```
+
+### Frontend Scripts
+
+```bash
+# Development
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+```
 
 ---
 
 ## 🗺️ Roadmap
 
-### ✅ Phase 1 – Foundation
+### ✅ Phase 1 – Foundation (Completed)
 
-* Credit system
-* Lending MVP
-* Sui testnet deployment
+* ✅ Credit system implementation
+* ✅ Standard lending MVP
+* ✅ Sui testnet deployment
+* ✅ Basic UI/UX
 
-### ✅ Phase 2 – DePIN Integration
+### ✅ Phase 2 – Advanced Features (Completed)
 
-* Funding module
-* Yield system
-* Dashboard
+* ✅ Risk-based lending pools (3 tiers)
+* ✅ Islamic finance (Mudarabah)
+* ✅ Collateral vault system
+* ✅ Advanced credit scoring
+* ✅ Real-time data updates
 
-### ✅ Phase 3 – Testnet Launch
+### ✅ Phase 3 – DePIN Integration (Completed)
 
-* Community testing
-* Security audits
-* Move contract optimization
+* ✅ DePIN funding module
+* ✅ Multiple project support (4+ projects)
+* ✅ Revenue distribution system
+* ✅ NFT proof-of-investment
+* ✅ Yield tracking dashboard
 
-### 🔜 Phase 4 – Mainnet & Growth
+### ✅ Phase 4 – Testnet Launch (Completed)
 
-* Sui mainnet deployment
-* Partnerships
-* Multi-chain expansion
+* ✅ Full testnet deployment
+* ✅ All contracts deployed
+* ✅ Frontend production-ready
+* ✅ Comprehensive testing (18 tests passing)
+* ✅ Documentation complete
+
+### 🔜 Phase 5 – Optimization & Audit (In Progress)
+
+* 🔄 Security audit
+* 🔄 Gas optimization
+* 🔄 Performance tuning
+* 🔄 Community testing
+* 🔄 Bug bounty program
+
+### 🔜 Phase 6 – Mainnet & Growth (Upcoming)
+
+* 📅 Sui mainnet deployment
+* 📅 Marketing campaign
+* 📅 Partnership announcements
+* 📅 Liquidity incentives
+* 📅 Governance token launch
+
+### 🔜 Phase 7 – Expansion (Future)
+
+* 📅 Multi-chain expansion
+* 📅 Advanced DeFi features
+* 📅 Mobile app
+* 📅 Institutional partnerships
+* 📅 Global scaling
 
 ---
 
@@ -525,12 +799,34 @@ npm run dev
 Update `src/config/sui.js` with your deployed Move package IDs:
 
 ```javascript
-export const SUI_PACKAGE_ID = '0x50049e571300f0ea3f493501d99bc46d5ca18e696f25dd2ceae145b54eb45218';
-export const LENDING_POOL_OBJECT_ID = '0x4d3a3ba82427978d9fe7a0a8f6d93e8c31917c45ed3fced2b09a1431e3678b0c';
-export const CREDIT_PROFILE_OBJECT_ID = '0x7332d82055668698dfb76c0f25a4da244a99d1e31af30ed0e8e2d9c3cb493ba2';
-export const DEPIN_FINANCE_OBJECT_ID = '0x6bc7de62357c6573fb1e0f37f0737bf0eeb1a428226afc1003233f00b67e8ee5';
-export const USE_DEMO_MODE = false;
+// Core Configuration
+export const SUI_PACKAGE_ID = '0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5';
+export const PROFILE_REGISTRY_OBJECT_ID = '0x59bee28062384ea12e53a1014dc32443090fc90e15caf4e90d56559d7bff315f';
+export const LENDING_POOL_OBJECT_ID = '0xb1d0c030979b33b1266984a979c3d98958e0a735b6628d473e5df9166615b03e';
+export const UPGRADE_CAP_OBJECT_ID = '0xc1f4a8ad5a8526647d61cd4a1e14e8f6cfbc78e3e38354aa9ad7f7a8551abd26';
+
+// Risk Pools
+export const RISK_POOL_LOW = '0xb70fa7c6e48e0a8f79a3d12c9a7df37f0c9a3d3b3b2cda2aacc0e3bd903d8cc4';
+export const RISK_POOL_MEDIUM = '0xdc498215dd5bbaec9377222cefcb559a10f7a814290fbd1572a2df40749b98e6';
+export const RISK_POOL_HIGH = '0x9276e0e3f3eeb9653a5c23fadeedc4bfa73e404fbf2870138e9aef2052c82311';
+
+// Islamic Finance
+export const MUDARABAH_POOL = '0x61064a963336445556012d57a7827e342e8fe6eb5be899da4f50263fbf4fab90';
+
+// DePIN Projects
+export const DEPIN_PROJECTS = [
+  {
+    id: '0xc19729095eaf30af890aa66172f906ce9f7050d0cff1137ac460b0fb0a283c36',
+    category: 'Solar',
+    name: 'Solar Farm Network',
+    target_amount: 100000000000, // 100 SUI
+    apy: 1200 // 12%
+  },
+  // ... more projects
+];
+
 export const ACTIVE_NETWORK = 'testnet';
+export const EXPLORER_URL = 'https://suiscan.xyz/testnet';
 ```
 
 ### Build for Production
@@ -571,6 +867,53 @@ MoonCreditFi shifts DeFi from:
 * Collateral → ✅ Reputation
 * Speculation → ✅ Real-world value
 * Exclusion → ✅ Financial inclusion
+
+---
+
+## 📚 Quick Reference
+
+### Package & Object IDs
+
+```javascript
+// Core
+PACKAGE_ID: 0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5
+PROFILE_REGISTRY: 0x59bee28062384ea12e53a1014dc32443090fc90e15caf4e90d56559d7bff315f
+LENDING_POOL: 0xb1d0c030979b33b1266984a979c3d98958e0a735b6628d473e5df9166615b03e
+
+// Risk Pools
+RISK_POOL_LOW: 0xb70fa7c6e48e0a8f79a3d12c9a7df37f0c9a3d3b3b2cda2aacc0e3bd903d8cc4
+RISK_POOL_MEDIUM: 0xdc498215dd5bbaec9377222cefcb559a10f7a814290fbd1572a2df40749b98e6
+RISK_POOL_HIGH: 0x9276e0e3f3eeb9653a5c23fadeedc4bfa73e404fbf2870138e9aef2052c82311
+
+// Islamic Finance
+MUDARABAH_POOL: 0x61064a963336445556012d57a7827e342e8fe6eb5be899da4f50263fbf4fab90
+```
+
+### Key Commands
+
+```bash
+# Deploy contracts
+sui client publish --gas-budget 500000000
+
+# Create lending pool
+sui client call --package <PACKAGE_ID> --module lending_pool --function create_pool --args 500 500 --gas-budget 100000000
+
+# Create risk pool (low)
+sui client call --package <PACKAGE_ID> --module risk_pool --function create_risk_pool --args 1 --gas-budget 100000000
+
+# Test contracts
+sui move test
+
+# Run frontend
+npm run dev
+```
+
+### Useful Links
+
+- **Testnet Explorer**: https://suiscan.xyz/testnet
+- **Package Explorer**: https://suiscan.xyz/testnet/object/0x2388af4607e9a5462058b146fe8cbb1e1d2b602862f8205d7a7844fcb4b568e5
+- **Sui Docs**: https://docs.sui.io
+- **Move Book**: https://move-book.com
 
 ---
 
