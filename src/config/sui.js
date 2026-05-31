@@ -92,7 +92,7 @@ export const DEPIN_PROJECTS = [
 export const DEPIN_FINANCE_OBJECT_ID = '0xc19729095eaf30af890aa66172f906ce9f7050d0cff1137ac460b0fb0a283c36';
 
 // Advanced DeFi Features - Risk Pools & Mudarabah (Islamic Finance)
-export const RISK_POOL_LOW = '0x0000000000000000000000000000000000000000000000000000000000000000';      // Level 1 - Low Risk (600+ reputation) - TO BE CREATED
+export const RISK_POOL_LOW = '0xb70fa7c6e48e0a8f79a3d12c9a7df37f0c9a3d3b3b2cda2aacc0e3bd903d8cc4';      // Level 1 - Low Risk (600+ reputation)
 export const RISK_POOL_MEDIUM = '0xdc498215dd5bbaec9377222cefcb559a10f7a814290fbd1572a2df40749b98e6';   // Level 2 - Medium Risk (400+ reputation)
 export const RISK_POOL_HIGH = '0x9276e0e3f3eeb9653a5c23fadeedc4bfa73e404fbf2870138e9aef2052c82311';     // Level 3 - High Risk (no minimum)
 export const MUDARABAH_POOL = '0x61064a963336445556012d57a7827e342e8fe6eb5be899da4f50263fbf4fab90';     // Profit-sharing pool (70/30 split)
